@@ -1,0 +1,2267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+content="width=device-width,initial-scale=1.0">
+
+<title>Cycle Game</title>
+
+<style>
+
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
+}
+
+body{
+    overflow:hidden;
+    background:#000;
+    font-family:Arial,sans-serif;
+}
+
+canvas{
+    display:block;
+}
+
+/* =========================
+   LOADING SCREEN
+========================= */
+
+#loadingScreen{
+    position:fixed;
+    inset:0;
+    display:flex;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:#000;
+    color:white;
+    z-index:10000;
+}
+
+#loadingScreen h1{
+    font-size:40px;
+}
+
+/* =========================
+   MAIN MENU
+========================= */
+
+#mainMenu{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,.85);
+    z-index:9999;
+}
+
+#mainMenu h1{
+    color:white;
+    font-size:60px;
+    margin-bottom:30px;
+}
+
+/* =========================
+   PAUSE MENU
+========================= */
+
+#pauseMenu{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,.85);
+    z-index:9999;
+}
+
+#pauseMenu h2{
+    color:white;
+    margin-bottom:20px;
+}
+
+/* =========================
+   GAME OVER MENU
+========================= */
+
+#gameOverMenu{
+    position:fixed;
+    inset:0;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    background:rgba(0,0,0,.92);
+    z-index:10001;
+}
+
+#gameOverTitle{
+    color:#ff4444;
+    font-size:60px;
+    margin-bottom:20px;
+    text-shadow:0 0 20px red;
+}
+
+#gameOverText{
+    color:white;
+    font-size:22px;
+    margin-bottom:30px;
+}
+
+/* =========================
+   BUTTONS
+========================= */
+
+button{
+    border:none;
+    outline:none;
+    cursor:pointer;
+
+    padding:15px 35px;
+
+    margin:10px;
+
+    font-size:20px;
+
+    border-radius:12px;
+
+    transition:.2s;
+}
+
+button:hover{
+    transform:scale(1.05);
+}
+
+.tvFocus{
+
+    outline:4px solid yellow;
+
+    outline-offset:4px;
+
+    border-radius:10px;
+
+}
+
+#playBtn{
+    background:#27ae60;
+    color:white;
+}
+
+#resumeBtn{
+    background:#3498db;
+    color:white;
+}
+
+#exitBtn{
+    background:#e74c3c;
+    color:white;
+}
+
+#restartBtn{
+    background:#f39c12;
+    color:white;
+}
+
+/* =========================
+   SELECT
+========================= */
+
+select{
+    padding:12px;
+    margin:15px;
+    font-size:18px;
+}
+
+/* =========================
+   FPS COUNTER
+========================= */
+
+#fps{
+    position:fixed;
+    top:10px;
+    left:10px;
+
+    background:rgba(0,0,0,.75);
+
+    color:#00ff00;
+
+    padding:10px;
+
+    font-family:monospace;
+
+    z-index:500;
+}
+
+/* =========================
+   DAMAGE OVERLAY
+========================= */
+
+#damageOverlay{
+    position:fixed;
+    inset:0;
+
+    pointer-events:none;
+
+    opacity:0;
+
+    transition:.4s;
+
+    background:
+    radial-gradient(
+        circle,
+        transparent 35%,
+        rgba(255,0,0,.75) 100%
+    );
+
+    z-index:9000;
+}
+
+</style>
+</head>
+
+<body>
+
+<!-- ======================
+     LOADING SCREEN
+====================== -->
+
+<div id="loadingScreen">
+    <h1>Loading...</h1>
+</div>
+
+<!-- ======================
+     MAIN MENU
+====================== -->
+
+<div id="mainMenu">
+
+    <h1>CYCLE GAME</h1>
+
+    <button id="playBtn">
+        PLAY
+    </button>
+
+</div>
+
+<!-- ======================
+     PAUSE MENU
+====================== -->
+
+<div id="pauseMenu">
+
+    <h2>Paused</h2>
+
+    <label style="color:white;">
+        Resolution
+    </label>
+
+<select id="resolutionSelect">
+<option value="1">100%</option>
+<option value="0.75">75%</option>
+<option value="0.6">60%</option>
+<option value="0.5">50%</option>
+<option value="0.4">40%</option>
+<option value="0.3">30%</option>
+<option value="0.25">25%</option>
+<option value="0.2">20%</option>
+<option value="0.15">15%</option>
+<option value="0.1">10%</option>
+<option value="0.04">5%</option>
+<option value="0.01">POTATO</option>
+
+
+</select>
+
+<label style="color:white;">
+    Quality
+</label>
+
+<select id="qualitySelect">
+
+    <option value="ultra">
+        Ultra
+    </option>
+
+    <option value="mid">
+        Medium
+    </option>
+
+    <option value="low">
+        Low
+    </option>
+
+</select>
+
+    <button id="resumeBtn">
+        Resume
+    </button>
+
+    <button id="exitBtn">
+        Exit To Menu
+    </button>
+
+</div>
+
+<!-- ======================
+     GAME OVER MENU
+====================== -->
+
+<div id="gameOverMenu">
+
+    <div id="gameOverTitle">
+        GAME OVER
+    </div>
+
+    <div id="gameOverText">
+        Your cycle crashed
+    </div>
+
+    <button id="restartBtn">
+        RESTART
+    </button>
+
+</div>
+
+<!-- ======================
+     FPS
+====================== -->
+
+<div id="fps">
+    FPS: 0
+</div>
+
+<!-- ======================
+     DAMAGE EFFECT
+====================== -->
+
+<div id="damageOverlay"></div>
+
+<!-- ======================
+     IMPORT MAP
+====================== -->
+
+<script type="importmap">
+{
+  "imports": {
+    "three":
+    "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
+  }
+}
+</script>
+
+<script type="module">
+
+import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
+
+import { OBJLoader }
+from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/OBJLoader.js";
+
+import { MTLLoader }
+from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/MTLLoader.js";
+
+import { RGBELoader }
+from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/RGBELoader.js";
+
+/* ===================================
+   GAME STATE
+=================================== */
+
+let gameStarted = false;
+let paused = false;
+let crashed = false;
+
+let renderScale = 1;
+
+let speed = 0;
+let driftAmount = 0;
+let lean = 0;
+
+let isRaining = false;
+let rainTimer = 0;
+let nextRainTime = 60 + Math.random() * 60;
+
+let cycle = null;
+
+const cycleSound = new Audio(
+    "assets/cycle.mp3"
+);
+
+cycleSound.loop = true;
+
+cycleSound.volume = 0.6;
+
+/* ===================================
+   UI REFERENCES
+=================================== */
+
+const loadingScreen =
+document.getElementById("loadingScreen");
+
+const mainMenu =
+document.getElementById("mainMenu");
+
+const pauseMenu =
+document.getElementById("pauseMenu");
+
+const gameOverMenu =
+document.getElementById("gameOverMenu");
+
+const damageOverlay =
+document.getElementById("damageOverlay");
+
+const fpsDiv =
+document.getElementById("fps");
+
+const playBtn =
+document.getElementById("playBtn");
+
+const resumeBtn =
+document.getElementById("resumeBtn");
+
+const exitBtn =
+document.getElementById("exitBtn");
+
+const restartBtn =
+document.getElementById("restartBtn");
+
+const resolutionSelect =
+document.getElementById("resolutionSelect");
+
+const qualitySelect =
+document.getElementById("qualitySelect");
+
+let quality = "ultra";
+
+const menuItems = [
+    resolutionSelect,
+    qualitySelect,
+    resumeBtn,
+    exitBtn
+];
+
+let menuCursor = 0;
+
+function applyQuality(){
+
+    if(quality === "ultra"){
+
+        renderer.shadowMap.enabled = true;
+
+        sun.castShadow = true;
+
+        sun.shadow.mapSize.set(
+            1024,
+            1024
+        );
+
+        scene.fog.far = 150;
+
+    }
+
+    else if(quality === "mid"){
+
+        renderer.shadowMap.enabled = true;
+
+        sun.castShadow = true;
+
+        sun.shadow.mapSize.set(
+            512,
+            512
+        );
+
+        scene.fog.far = 120;
+
+    }
+
+    else{
+
+        renderer.shadowMap.enabled = false;
+
+        sun.castShadow = false;
+
+        scene.fog.far = 80;
+
+    }
+
+}
+
+
+qualitySelect.onchange = (e)=>{
+
+    quality = e.target.value;
+
+    applyQuality();
+
+};
+
+function updateTVFocus(){
+
+    menuItems.forEach(item=>{
+
+        item.classList.remove(
+            "tvFocus"
+        );
+
+    });
+
+    menuItems[
+        menuCursor
+    ].classList.add(
+        "tvFocus"
+    );
+
+}
+
+window.addEventListener(
+"keydown",
+(e)=>{
+
+    if(!paused)
+    return;
+
+    if(e.key === "ArrowLeft"){
+
+        if(
+            document.activeElement ===
+            resolutionSelect
+        ){
+
+            resolutionSelect.selectedIndex =
+            Math.max(
+                0,
+                resolutionSelect.selectedIndex - 1
+            );
+
+            resolutionSelect.dispatchEvent(
+                new Event("change")
+            );
+
+        }
+
+        if(
+            document.activeElement ===
+            qualitySelect
+        ){
+
+            qualitySelect.selectedIndex =
+            Math.max(
+                0,
+                qualitySelect.selectedIndex - 1
+            );
+
+            qualitySelect.dispatchEvent(
+                new Event("change")
+            );
+
+        }
+
+    }
+
+    if(e.key === "ArrowRight"){
+
+        if(
+            document.activeElement ===
+            resolutionSelect
+        ){
+
+            resolutionSelect.selectedIndex =
+            Math.min(
+                resolutionSelect.options.length - 1,
+                resolutionSelect.selectedIndex + 1
+            );
+
+            resolutionSelect.dispatchEvent(
+                new Event("change")
+            );
+
+        }
+
+        if(
+            document.activeElement ===
+            qualitySelect
+        ){
+
+            qualitySelect.selectedIndex =
+            Math.min(
+                qualitySelect.options.length - 1,
+                qualitySelect.selectedIndex + 1
+            );
+
+            qualitySelect.dispatchEvent(
+                new Event("change")
+            );
+
+        }
+
+    }
+
+}
+);
+
+window.addEventListener(
+"keydown",
+(e)=>{
+
+    if(!paused)
+    return;
+
+    if(e.key === "ArrowUp"){
+
+        menuCursor--;
+
+        if(menuCursor < 0){
+
+            menuCursor =
+            menuItems.length - 1;
+
+        }
+
+        updateTVFocus();
+
+    }
+
+    if(e.key === "ArrowDown"){
+
+        menuCursor++;
+
+        if(
+            menuCursor >=
+            menuItems.length
+        ){
+
+            menuCursor = 0;
+
+        }
+
+        updateTVFocus();
+
+    }
+
+    if(
+        e.key === "Enter"
+    ){
+
+        const item =
+        menuItems[
+            menuCursor
+        ];
+
+        if(item === resumeBtn){
+
+            resumeBtn.click();
+
+        }
+
+        if(item === exitBtn){
+
+            exitBtn.click();
+
+        }
+
+    }
+
+});
+
+/* ===================================
+   THREE SCENE
+=================================== */
+
+const scene =
+new THREE.Scene();
+
+scene.background =
+new THREE.Color(0x87ceeb);
+
+scene.fog =
+new THREE.Fog(
+    0x87ceeb,
+    20,
+    150
+);
+
+/* ===================================
+   CAMERA
+=================================== */
+
+const NORMAL_FOV = 60;
+const BOOST_FOV = 78;
+
+const camera =
+new THREE.PerspectiveCamera(
+    NORMAL_FOV,
+    window.innerWidth /
+    window.innerHeight,
+    0.1,
+    2000
+);
+
+camera.position.set(
+    0,
+    3,
+    -5
+);
+
+/* ===================================
+   RENDERER
+=================================== */
+
+const renderer =
+new THREE.WebGLRenderer({
+
+    antialias:true,
+    powerPreference:
+    "high-performance"
+
+});
+
+renderer.setPixelRatio(
+
+    Math.min(
+        window.devicePixelRatio,
+        1.5
+    )
+
+);
+
+renderer.setSize(
+    window.innerWidth,
+    window.innerHeight
+);
+
+renderer.shadowMap.enabled = true;
+
+renderer.shadowMap.type =
+THREE.PCFSoftShadowMap;
+
+renderer.outputColorSpace =
+THREE.SRGBColorSpace;
+
+renderer.toneMapping =
+THREE.ACESFilmicToneMapping;
+
+renderer.toneMappingExposure =
+1.0;
+
+document.body.appendChild(
+    renderer.domElement
+);
+
+/* ===================================
+   HDR ENVIRONMENT
+=================================== */
+
+const pmremGenerator =
+new THREE.PMREMGenerator(
+    renderer
+);
+
+new RGBELoader().load(
+
+"https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr",
+
+(hdr)=>{
+
+    const envMap =
+
+    pmremGenerator
+    .fromEquirectangular(hdr)
+    .texture;
+
+    scene.environment =
+    envMap;
+
+    hdr.dispose();
+
+}
+
+);
+
+/* ===================================
+   LIGHTING
+=================================== */
+
+const ambientLight =
+new THREE.AmbientLight(
+    0xffffff,
+    2
+);
+
+scene.add(
+    ambientLight
+);
+
+const sun =
+new THREE.DirectionalLight(
+    0xffffff,
+    3
+);
+
+sun.position.set(
+    20,
+    30,
+    20
+);
+
+sun.castShadow = true;
+
+sun.shadow.mapSize.width =
+512;
+
+sun.shadow.mapSize.height =
+512;
+
+sun.shadow.camera.left =
+-100;
+
+sun.shadow.camera.right =
+100;
+
+sun.shadow.camera.top =
+100;
+
+sun.shadow.camera.bottom =
+-100;
+
+sun.shadow.camera.near =
+1;
+
+sun.shadow.camera.far =
+300;
+
+scene.add(
+    sun
+);
+
+/* ===================================
+   TEXTURES
+=================================== */
+
+const textureLoader =
+new THREE.TextureLoader();
+
+const baseMap =
+textureLoader.load(
+"assets/basecolor.JPEG"
+);
+
+const normalMap =
+textureLoader.load(
+"assets/normal.JPEG"
+);
+
+const roughnessMap =
+textureLoader.load(
+"assets/roughness.JPEG"
+);
+
+/* ===================================
+   ARRAYS
+=================================== */
+
+const roads = [];
+const grounds = [];
+const puddles = [];
+const buildingChunks = [];
+
+const rainGroup =
+new THREE.Group();
+
+scene.add(
+    rainGroup
+);
+
+/* ===================================
+   INPUT
+=================================== */
+
+const keys = {};
+
+window.addEventListener(
+"keydown",
+(e)=>{
+
+    const k =
+    e.key.toLowerCase();
+
+    if(
+        k === "w" ||
+        e.key === "ArrowUp"
+    ){
+        keys["w"] = true;
+    }
+
+    if(
+        k === "s" ||
+        e.key === "ArrowDown"
+    ){
+        keys["s"] = true;
+    }
+
+    if(
+        k === "a" ||
+        e.key === "ArrowLeft"
+    ){
+        keys["a"] = true;
+    }
+
+    if(
+        k === "d" ||
+        e.key === "ArrowRight"
+    ){
+        keys["d"] = true;
+    }
+
+}
+);
+
+window.addEventListener(
+"keyup",
+(e)=>{
+
+    const k =
+    e.key.toLowerCase();
+
+    if(
+        k === "w" ||
+        e.key === "ArrowUp"
+    ){
+        keys["w"] = false;
+    }
+
+    if(
+        k === "s" ||
+        e.key === "ArrowDown"
+    ){
+        keys["s"] = false;
+    }
+
+    if(
+        k === "a" ||
+        e.key === "ArrowLeft"
+    ){
+        keys["a"] = false;
+    }
+
+    if(
+        k === "d" ||
+        e.key === "ArrowRight"
+    ){
+        keys["d"] = false;
+    }
+
+}
+);
+/* ===================================
+   RESIZE
+=================================== */
+
+window.addEventListener(
+"resize",
+()=>{
+
+    camera.aspect =
+
+    window.innerWidth /
+    window.innerHeight;
+
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(
+
+        window.innerWidth *
+        renderScale,
+
+        window.innerHeight *
+        renderScale,
+
+        false
+
+    );
+
+    renderer.domElement.style.width =
+    "100vw";
+
+    renderer.domElement.style.height =
+    "100vh";
+
+}
+);
+
+/* ===================================
+   ROAD SETTINGS
+=================================== */
+
+const ROAD_LIMIT = 18;
+let backBarrier = -20;
+
+/* ===================================
+   ROAD CHUNKS
+=================================== */
+
+for(let i=0;i<4;i++){
+
+    const roadGroup =
+    new THREE.Group();
+
+    /* Main Road */
+
+    const road = new THREE.Mesh(
+
+        new THREE.PlaneGeometry(
+            50,
+            250
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+            color:0x222222,
+            roughness:1,
+            metalness:0
+
+        })
+
+    );
+
+    road.rotation.x =
+    -Math.PI/2;
+
+    road.receiveShadow =
+    true;
+
+    roadGroup.add(
+        road
+    );
+
+    /* Left Shoulder */
+
+    const leftShoulder =
+    new THREE.Mesh(
+
+        new THREE.PlaneGeometry(
+            3,
+            250
+        ),
+
+        new THREE.MeshStandardMaterial({
+            color:0x666666
+        })
+
+    );
+
+    leftShoulder.rotation.x =
+    -Math.PI/2;
+
+    leftShoulder.position.set(
+        -23.5,
+        0.01,
+        0
+    );
+
+    roadGroup.add(
+        leftShoulder
+    );
+
+    /* Right Shoulder */
+
+    const rightShoulder =
+    leftShoulder.clone();
+
+    rightShoulder.position.x =
+    23.5;
+
+    roadGroup.add(
+        rightShoulder
+    );
+
+    /* Center Yellow Lines */
+
+    const yellowMat =
+    new THREE.MeshStandardMaterial({
+        color:0xffdd00
+    });
+
+    for(let x of [-0.6,0.6]){
+
+        const line =
+        new THREE.Mesh(
+
+            new THREE.PlaneGeometry(
+                0.3,
+                250
+            ),
+
+            yellowMat
+
+        );
+
+        line.rotation.x =
+        -Math.PI/2;
+
+        line.position.set(
+            x,
+            0.02,
+            0
+        );
+
+        roadGroup.add(
+            line
+        );
+
+    }
+
+    /* White Edge Lines */
+
+    const whiteMat =
+    new THREE.MeshStandardMaterial({
+        color:0xffffff
+    });
+
+    for(let x of [-18,18]){
+
+        const edge =
+        new THREE.Mesh(
+
+            new THREE.PlaneGeometry(
+                0.3,
+                250
+            ),
+
+            whiteMat
+
+        );
+
+        edge.rotation.x =
+        -Math.PI/2;
+
+        edge.position.set(
+            x,
+            0.02,
+            0
+        );
+
+        roadGroup.add(
+            edge
+        );
+
+    }
+
+    /* Cat Eyes */
+
+    for(
+        let z=-125;
+        z<125;
+        z+=30
+    ){
+
+        const catEye =
+        new THREE.Mesh(
+
+            new THREE.BoxGeometry(
+                0.4,
+                0.05,
+                0.4
+            ),
+
+            new THREE.MeshStandardMaterial({
+
+                color:0xffffaa,
+                emissive:0x444400
+
+            })
+
+        );
+
+        catEye.position.set(
+            0,
+            0.05,
+            z
+        );
+
+        roadGroup.add(
+            catEye
+        );
+
+    }
+
+    roadGroup.position.z =
+    i * 250;
+
+    roadGroup.position.y =
+    0.15;
+
+    scene.add(
+        roadGroup
+    );
+
+    roads.push(
+        roadGroup
+    );
+
+}
+
+/* ===================================
+   GROUND
+=================================== */
+
+for(let i=0;i<4;i++){
+
+    const ground =
+    new THREE.Mesh(
+
+        new THREE.PlaneGeometry(
+            1000,
+            250
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+            color:0x4a7c3a
+
+        })
+
+    );
+
+    ground.rotation.x =
+    -Math.PI/2;
+
+    ground.position.z =
+    i * 250;
+
+    ground.receiveShadow =
+    true;
+
+    scene.add(
+        ground
+    );
+
+    grounds.push(
+        ground
+    );
+
+}
+
+/* ===================================
+   PUDDLES
+=================================== */
+
+for(let i=0;i<40;i++){
+
+    const puddle =
+    new THREE.Mesh(
+
+        new THREE.CircleGeometry(
+
+            1 +
+            Math.random()*2,
+
+            20
+
+        ),
+
+        new THREE.MeshStandardMaterial({
+
+            color:0x445566,
+
+            roughness:0.05,
+
+            metalness:0.8,
+
+            transparent:true,
+
+            opacity:0.85
+
+        })
+
+    );
+
+    puddle.rotation.x =
+    -Math.PI/2;
+
+    puddle.position.set(
+
+        (Math.random()-0.5)*20,
+
+        0.16,
+
+        Math.random()*1000
+
+    );
+
+    puddle.visible =
+    false;
+
+    scene.add(
+        puddle
+    );
+
+    puddles.push(
+        puddle
+    );
+
+}
+
+/* ===================================
+   RAIN SYSTEM
+=================================== */
+
+for(let i=0;i<200;i++){
+
+    const drop =
+    new THREE.Mesh(
+
+        new THREE.BoxGeometry(
+            0.03,
+            0.8,
+            0.03
+        ),
+
+        new THREE.MeshBasicMaterial({
+
+            color:0xaaddff,
+
+            transparent:true,
+
+            opacity:0.7
+
+        })
+
+    );
+
+    drop.position.set(
+
+        (Math.random()-0.5)*200,
+
+        Math.random()*80,
+
+        (Math.random()-0.5)*200
+
+    );
+
+    rainGroup.add(
+        drop
+    );
+
+}
+
+rainGroup.visible =
+false;
+
+/* ===================================
+   MODEL LOADING
+=================================== */
+
+new MTLLoader().load(
+
+"assets/model.mtl",
+
+(materials)=>{
+
+    materials.preload();
+
+    new OBJLoader()
+
+    .setMaterials(materials)
+
+    .load(
+
+    "assets/model.obj",
+
+    (obj)=>{
+
+        obj.traverse((child)=>{
+
+            if(child.isMesh){
+
+                child.castShadow = true;
+                child.receiveShadow = true;
+
+                child.material =
+                new THREE.MeshStandardMaterial({
+
+                    map:baseMap,
+                    normalMap:normalMap,
+                    roughnessMap:roughnessMap,
+
+                    color: 0xffffff,
+
+                    metalness:1,
+                    roughness:2,
+
+                    envMapIntensity: 0.2
+
+                });
+
+            }
+
+        });
+
+        const box =
+        new THREE.Box3()
+        .setFromObject(obj);
+
+        const center =
+        box.getCenter(
+            new THREE.Vector3()
+        );
+
+        obj.position.sub(center);
+
+        obj.position.y = 1;
+
+        obj.scale.set(
+            1,
+            1,
+            1
+        );
+
+        scene.add(obj);
+
+        cycle = obj;
+
+        window.cycle = obj;
+
+        loadingScreen.style.display =
+        "none";
+
+        mainMenu.style.display =
+        "flex";
+
+    },
+
+    undefined,
+
+    (error)=>{
+
+        console.error(error);
+
+        alert(
+        "Model failed to load."
+        );
+
+    }
+
+    );
+
+});
+
+/* ===================================
+   RESET GAME
+=================================== */
+
+function resetGame(){
+
+    crashed = false;
+
+    speed = 0;
+
+    lean = 0;
+
+    driftAmount = 0;
+
+    backBarrier = -20;
+
+    rainTimer = 0;
+
+    isRaining = false;
+
+    nextRainTime =
+    60 + Math.random()*60;
+
+    damageOverlay.style.opacity =
+    "0";
+
+    gameOverMenu.style.display =
+    "none";
+
+    rainGroup.visible =
+    false;
+
+    puddles.forEach(p=>{
+
+        p.visible = false;
+
+    roads.forEach((road,index)=>{
+
+        road.position.z =
+        index * 250;
+    
+    });
+    
+    grounds.forEach((ground,index)=>{
+    
+        ground.position.z =
+        index * 250;
+    
+    });
+
+    });
+
+    if(cycle){
+
+        cycle.position.set(
+            0,
+            1,
+            0
+        );
+
+        cycle.rotation.set(
+            0,
+            0,
+            0
+        );
+
+    }
+
+    camera.rotation.set(
+        0,
+        0,
+        0
+    );
+
+    scene.background =
+    new THREE.Color(
+        0x87ceeb
+    );
+
+    scene.fog.color.set(
+        0x87ceeb
+    );
+
+    roads.forEach(r=>{
+
+        const road =
+        r.children[0];
+
+        road.material.color.set(
+            0x222222
+        );
+
+        road.material.roughness =
+        1;
+
+        road.material.metalness =
+        0;
+
+    });
+
+}
+
+/* ===================================
+   GAME OVER
+=================================== */
+
+function gameOver(){
+
+    if(crashed)
+    return;
+
+    crashed = true;
+
+    speed = 0;
+
+    damageOverlay.style.opacity =
+    "1";
+
+    gameOverMenu.style.display =
+    "flex";
+
+}
+
+/* ===================================
+   PLAY BUTTON
+=================================== */
+
+playBtn.onclick = ()=>{
+
+    resetGame();
+
+    gameStarted = true;
+
+    paused = false;
+
+    mainMenu.style.display =
+    "none";
+
+};
+
+/* ===================================
+   RESUME BUTTON
+=================================== */
+
+resumeBtn.onclick = ()=>{
+
+    paused = false;
+
+    pauseMenu.style.display =
+    "none";
+
+};
+
+/* ===================================
+   EXIT BUTTON
+=================================== */
+
+exitBtn.onclick = ()=>{
+
+    paused = false;
+
+    gameStarted = false;
+
+    pauseMenu.style.display =
+    "none";
+
+    mainMenu.style.display =
+    "flex";
+
+    resetGame();
+
+};
+
+/* ===================================
+   RESTART BUTTON
+=================================== */
+
+restartBtn.onclick = ()=>{
+
+    resetGame();
+
+    gameStarted = true;
+
+    paused = false;
+
+};
+
+/* ===================================
+   RESOLUTION MENU
+=================================== */
+
+resolutionSelect.onchange =
+(e)=>{
+
+    renderScale =
+    parseFloat(
+        e.target.value
+    );
+
+    renderer.setSize(
+
+        window.innerWidth *
+        renderScale,
+
+        window.innerHeight *
+        renderScale,
+
+        false
+
+    );
+
+    renderer.domElement.style.width =
+    "100vw";
+
+    renderer.domElement.style.height =
+    "100vh";
+
+    if(renderScale <= 0.1){
+
+        scene.fog.near = 5;
+        scene.fog.far = 40;
+
+    }
+    else if(renderScale <= 0.2){
+
+        scene.fog.near = 10;
+        scene.fog.far = 60;
+
+    }
+    else{
+
+        scene.fog.near = 20;
+        scene.fog.far = 150;
+
+    }
+
+};
+
+/* ===================================
+   ESC PAUSE
+=================================== */
+
+window.addEventListener(
+    "keydown",
+    (e) => {
+
+        if(
+            (e.key === "Escape" ||
+             e.key === "Enter") &&
+            gameStarted &&
+            !crashed
+        ){
+
+            paused = !paused;
+
+            pauseMenu.style.display =
+            paused
+            ? "flex"
+            : "none";
+            
+            if(paused){
+            
+                menuCursor = 0;
+            
+                updateTVFocus();
+            
+            }
+
+        }
+
+    }
+);
+
+/* ===================================
+   DEBUG KEYS
+=================================== */
+
+window.addEventListener(
+
+"keydown",
+
+(e)=>{
+
+    if(
+        e.key === "p"
+    ){
+
+        console.log(
+            camera.position
+        );
+
+    }
+
+    if(
+        e.key === "o" &&
+        cycle
+    ){
+
+        console.log(
+            cycle.position
+        );
+
+    }
+
+}
+
+);
+
+/* ===================================
+   FPS COUNTER
+=================================== */
+
+let lastFpsTime = performance.now();
+let frames = 0;
+
+/* ===================================
+   ANIMATION LOOP
+=================================== */
+
+function animate(){
+
+    requestAnimationFrame(animate);
+
+    const now = performance.now();
+
+    frames++;
+
+    if(now - lastFpsTime >= 1000){
+
+        fpsDiv.textContent =
+        "FPS: " + frames;
+
+        frames = 0;
+        lastFpsTime = now;
+
+    }
+
+    if(
+        cycle &&
+        gameStarted &&
+        !paused
+    ){
+
+        /* ==========================
+           RECYCLE ROADS
+        ========================== */
+
+        roads.forEach(road=>{
+
+            if(
+                road.position.z <
+                cycle.position.z - 250
+            ){
+
+                road.position.z += 1000;
+
+                backBarrier += 250;
+
+            }
+
+        });
+
+        grounds.forEach(ground=>{
+
+            if(
+                ground.position.z <
+                cycle.position.z - 250
+            ){
+
+                ground.position.z += 1000;
+
+            }
+
+        });
+
+        /* ==========================
+           MOVEMENT
+        ========================== */
+
+        if(!crashed){
+
+            if(keys["w"])
+                speed += 0.03;
+
+            if(keys["s"])
+                speed -= 0.01;
+
+            speed *= 0.98;
+
+            speed = Math.max(
+                speed,
+                -0.5
+            );
+
+            if(keys["a"]){
+
+                cycle.rotation.y += 0.03;
+
+                driftAmount +=
+                Math.abs(speed);
+
+                lean = Math.min(
+                    lean + 0.03,
+                    0.4
+                );
+
+            }
+
+            if(keys["d"]){
+
+                cycle.rotation.y -= 0.03;
+
+                driftAmount +=
+                Math.abs(speed);
+
+                lean = Math.max(
+                    lean - 0.03,
+                    -0.4
+                );
+
+            }
+
+            if(
+                !keys["a"] &&
+                !keys["d"]
+            ){
+
+                lean *= 0.9;
+
+            }
+
+        }
+
+        cycle.rotation.z =
+        -lean * 0.7;
+
+        cycle.position.x +=
+        Math.sin(
+            cycle.rotation.y
+        ) * speed;
+
+        cycle.position.z +=
+        Math.cos(
+            cycle.rotation.y
+        ) * speed;
+
+
+        if(keys["w"] && gameStarted){
+        
+            if(cycleSound.paused){
+        
+                cycleSound.play();
+        
+            }
+        
+        }
+        else{
+        
+            cycleSound.pause();
+        
+        }
+
+        /* ==========================
+           ROAD LIMITS
+        ========================== */
+
+        if(
+            cycle.position.x >
+            ROAD_LIMIT
+        ){
+
+            cycle.position.x =
+            ROAD_LIMIT;
+
+        }
+
+        if(
+            cycle.position.x <
+            -ROAD_LIMIT
+        ){
+
+            cycle.position.x =
+            -ROAD_LIMIT;
+
+        }
+
+        if(
+            cycle.position.z <
+            backBarrier
+        ){
+
+            cycle.position.z =
+            backBarrier;
+
+            if(speed < 0)
+                speed = 0;
+
+        }
+
+        /* ==========================
+           CRASH CHECK
+        ========================== */
+
+        if(
+            isRaining &&
+            !crashed
+        ){
+
+            puddles.forEach(p=>{
+
+                if(!p.visible)
+                return;
+
+                const dx =
+                cycle.position.x -
+                p.position.x;
+
+                const dz =
+                cycle.position.z -
+                p.position.z;
+
+                const dist =
+                Math.sqrt(
+                    dx*dx +
+                    dz*dz
+                );
+
+                if(
+
+                    dist < 2 &&
+                    driftAmount > 4 &&
+                    speed > 0.5
+
+                ){
+
+                    gameOver();
+
+                }
+
+            });
+
+        }
+
+        /* ==========================
+           CRASH ANIMATION
+        ========================== */
+
+        if(crashed){
+
+            cycle.rotation.z +=
+            0.08;
+
+            speed *= 0.92;
+
+            camera.rotation.z =
+            Math.sin(
+                performance.now()
+                * 0.02
+            ) * 0.12;
+
+        }
+
+        /* ==========================
+           CAMERA
+        ========================== */
+
+        camera.position.x =
+
+        cycle.position.x -
+
+        Math.sin(
+            cycle.rotation.y
+        ) * 1.25;
+
+        camera.position.z =
+
+        cycle.position.z -
+
+        Math.cos(
+            cycle.rotation.y
+        ) * 1.25;
+
+        let bounce = 0;
+
+        if(
+            Math.abs(speed) > 0.1
+        ){
+
+            bounce =
+
+            Math.sin(
+                performance.now()
+                * 0.01
+            )
+
+            *
+
+            Math.min(
+                Math.abs(speed)
+                * 0.04,
+                0.03
+            );
+
+        }
+
+        camera.position.y =
+
+        cycle.position.y +
+        2 +
+        bounce;
+
+        camera.lookAt(
+
+            cycle.position.x,
+
+            cycle.position.y + 1.5,
+
+            cycle.position.z
+
+        );
+
+        camera.up.set(
+
+            -lean * 0.5,
+
+            1,
+
+            0
+
+        );
+
+    }
+
+    /* ==========================
+       FOV BOOST
+    ========================== */
+
+    const targetFov =
+
+    keys["w"]
+    ? BOOST_FOV
+    : NORMAL_FOV;
+
+    camera.fov +=
+
+    (targetFov - camera.fov)
+
+    * 0.08;
+
+    camera.updateProjectionMatrix();
+
+    /* ==========================
+       WEATHER TIMER
+    ========================== */
+
+    rainTimer += 1/60;
+
+    if(
+
+        !isRaining &&
+
+        rainTimer >
+        nextRainTime
+
+    ){
+
+        isRaining = true;
+
+        rainGroup.visible =
+        true;
+
+        puddles.forEach(p=>{
+
+            p.visible = true;
+
+        });
+
+        scene.background =
+        new THREE.Color(
+            0x4b5563
+        );
+
+        scene.fog.color.set(
+            0x5a6775
+        );
+
+        roads.forEach(r=>{
+
+            const road =
+            r.children[0];
+
+            road.material.color.set(
+                0x111111
+            );
+
+            road.material.roughness =
+            0.15;
+
+            road.material.metalness =
+            0.5;
+
+        });
+
+    }
+
+    if(
+
+        isRaining &&
+
+        rainTimer >
+        nextRainTime + 45
+
+    ){
+
+        isRaining = false;
+
+        rainGroup.visible =
+        false;
+
+        puddles.forEach(p=>{
+
+            p.visible = false;
+
+        });
+
+        scene.background =
+        new THREE.Color(
+            0x87ceeb
+        );
+
+        scene.fog.color.set(
+            0x87ceeb
+        );
+
+        roads.forEach(r=>{
+
+            const road =
+            r.children[0];
+
+            road.material.color.set(
+                0x222222
+            );
+
+            road.material.roughness =
+            1;
+
+            road.material.metalness =
+            0;
+
+        });
+
+        rainTimer = 0;
+
+        nextRainTime =
+
+        60 +
+
+        Math.random() * 60;
+
+    }
+
+    /* ==========================
+       RAIN UPDATE
+    ========================== */
+
+    if(rainGroup.visible){
+
+        if(cycle){
+
+            rainGroup.position.x =
+            cycle.position.x;
+
+            rainGroup.position.z =
+            cycle.position.z;
+
+        }
+
+        rainGroup.children.forEach(drop=>{
+
+            drop.position.y -= 1.8;
+
+            if(
+                drop.position.y < 0
+            ){
+
+                drop.position.y = 80;
+
+                drop.position.x =
+
+                (Math.random()-0.5)
+                * 200;
+
+                drop.position.z =
+
+                (Math.random()-0.5)
+                * 200;
+
+            }
+
+        });
+
+    }
+
+    renderer.render(
+        scene,
+        camera
+    );
+
+}
+
+animate();
+
+</script>
+</body>
+</html>
