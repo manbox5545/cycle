@@ -359,11 +359,8 @@ select{
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
 
-import { OBJLoader }
-from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/OBJLoader.js";
-
-import { MTLLoader }
-from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/MTLLoader.js";
+import { GLTFLoader }
+from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
 
 import { RGBELoader }
 from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/RGBELoader.js";
@@ -838,27 +835,6 @@ scene.add(
     sun
 );
 
-/* ===================================
-   TEXTURES
-=================================== */
-
-const textureLoader =
-new THREE.TextureLoader();
-
-const baseMap =
-textureLoader.load(
-"assets/basecolor.JPEG"
-);
-
-const normalMap =
-textureLoader.load(
-"assets/normal.JPEG"
-);
-
-const roughnessMap =
-textureLoader.load(
-"assets/roughness.JPEG"
-);
 
 /* ===================================
    ARRAYS
@@ -1356,23 +1332,15 @@ false;
    MODEL LOADING
 =================================== */
 
-new MTLLoader().load(
+const gltfLoader = new GLTFLoader();
 
-"assets/model.mtl",
+gltfLoader.load(
 
-(materials)=>{
+    "assets/model.glb",
 
-    materials.preload();
+    (gltf)=>{
 
-    new OBJLoader()
-
-    .setMaterials(materials)
-
-    .load(
-
-    "assets/model.obj",
-
-    (obj)=>{
+        const obj = gltf.scene;
 
         obj.traverse((child)=>{
 
@@ -1381,34 +1349,15 @@ new MTLLoader().load(
                 child.castShadow = true;
                 child.receiveShadow = true;
 
-                child.material =
-                new THREE.MeshStandardMaterial({
-
-                    map:baseMap,
-                    normalMap:normalMap,
-                    roughnessMap:roughnessMap,
-
-                    color: 0xffffff,
-
-                    metalness:1,
-                    roughness:2,
-
-                    envMapIntensity: 0.2
-
-                });
-
             }
 
         });
 
         const box =
-        new THREE.Box3()
-        .setFromObject(obj);
+        new THREE.Box3().setFromObject(obj);
 
         const center =
-        box.getCenter(
-            new THREE.Vector3()
-        );
+        box.getCenter(new THREE.Vector3());
 
         obj.position.sub(center);
 
@@ -1424,31 +1373,34 @@ new MTLLoader().load(
 
         cycle = obj;
 
-        window.cycle = obj;
-
         loadingScreen.style.display =
         "none";
 
         mainMenu.style.display =
         "flex";
 
+        console.log("GLB Loaded");
+
     },
 
-    undefined,
+    (xhr)=>{
+
+        console.log(
+            (xhr.loaded / xhr.total * 100).toFixed(0)
+            + "% loaded"
+        );
+
+    },
 
     (error)=>{
 
         console.error(error);
 
-        alert(
-        "Model failed to load."
-        );
+        alert("GLB failed to load");
 
     }
 
-    );
-
-});
+);
 
 /* ===================================
    RESET GAME
