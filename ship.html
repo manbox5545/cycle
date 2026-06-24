@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>ISS Space Explorer</title>
+
+<style>
+body{
+    margin:0;
+    overflow:hidden;
+    background:black;
+    font-family:Arial,sans-serif;
+}
+
+#hint{
+    position:absolute;
+    bottom:40px;
+    left:50%;
+    transform:translateX(-50%);
+    background:rgba(0,0,0,.75);
+    color:white;
+    padding:12px 20px;
+    border-radius:10px;
+    display:none;
+    font-size:18px;
+    border:1px solid rgba(255,255,255,.3);
+}
+
+#crosshair{
+    position:absolute;
+    left:50%;
+    top:50%;
+    transform:translate(-50%,-50%);
+    color:white;
+    font-size:20px;
+    pointer-events:none;
+}
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="crosshair">+</div>
+<div id="hint">Press E to use telescope</div>
+
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { PointerLockControls } from "three/addons/controls/PointerLockControls.js";
+
+const scene = new THREE.Scene();
+
+const camera = new THREE.PerspectiveCamera(
+    75,
+    window.innerWidth/window.innerHeight,
+    1,
+    1000000
+);
+
+const renderer = new THREE.WebGLRenderer({
+    antialias:true
+});
+
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.shadowMap.enabled = true;
+document.body.appendChild(renderer.domElement);
+
+camera.position.set(
+    5200,
+    -5100,
+    500
+);
+
+const controls = new PointerLockControls(camera,document.body);
+
+document.body.addEventListener("click",()=>{
+    controls.lock();
+});
+
+
+
+// LIGHTS
+
+scene.add(
+    new THREE.AmbientLight(
+        0xffffff,
+        1.2
+    )
+);
+
+const sunLight = new THREE.PointLight(
+0xffffff,
+500,
+500000
+);
+
+sunLight.position.set(
+    150000,
+    50000,
+    0
+);
+
+scene.add(sunLight);
+
+
+
+// SUN
+
+const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(
+        12000,
+        64,
+        64
+    ),
+    new THREE.MeshBasicMaterial({
+        color:0xffee99
+    })
+);
+
+sun.position.copy(
+    sunLight.position
+);
+
+scene.add(sun);
+
+
+
+// EARTH
+
+const loader =
+new THREE.TextureLoader();
+
+const earthTexture =
+loader.load(
+"https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg"
+);
+
+const earth = new THREE.Mesh(
+    new THREE.SphereGeometry(
+        5000,
+        128,
+        128
+    ),
+    new THREE.MeshPhysicalMaterial({
+        map:earthTexture,
+        roughness:0.05,
+        metalness:0.3,
+        clearcoat:1,
+        clearcoatRoughness:0
+    })
+);
+
+earth.position.y = -5000;
+scene.add(earth);
+
+
+
+// MOON
+
+const moonTexture =
+loader.load(
+"https://threejs.org/examples/textures/planets/moon_1024.jpg"
+);
+
+const moon = new THREE.Mesh(
+    new THREE.SphereGeometry(
+        800,
+        64,
+        64
+    ),
+    new THREE.MeshStandardMaterial({
+        map:moonTexture
+    })
+);
+
+scene.add(moon);
+
+
+
+// STARS
+
+const starGeometry =
+new THREE.BufferGeometry();
+
+const starVertices = [];
+
+for(let i=0;i<20000;i++){
+
+    starVertices.push(
+        (Math.random()-0.5)*500000,
+        (Math.random()-0.5)*500000,
+        (Math.random()-0.5)*500000
+    );
+}
+
+starGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(
+        starVertices,
+        3
+    )
+);
+
+const stars =
+new THREE.Points(
+    starGeometry,
+    new THREE.PointsMaterial({
+        color:0xffffff,
+        size:2
+    })
+);
+
+scene.add(stars);
+
+
+
+// ISS
+
+let iss;
+
+const gltfLoader =
+new GLTFLoader();
+
+gltfLoader.load(
+    "iss.glb",
+
+    gltf=>{
+
+        iss = gltf.scene;
+
+        iss.scale.set(
+            500,
+            500,
+            500
+        );
+
+        iss.position.set(
+            5200,
+            -5100,
+            0
+        );
+
+        scene.add(iss);
+
+    },
+
+    undefined,
+
+    err=>{
+        console.error(err);
+    }
+);
+
+
+
+// MOVEMENT
+
+const keys = {};
+
+let tvYaw = 0;
+
+document.addEventListener(
+    "keydown",
+    e=>{
+
+        const key = e.key.toLowerCase();
+
+        keys[key] = true;
+
+        if(
+            (key === "e" || e.key === "Enter") &&
+            nearISS
+        ){
+            location.href = "index.html";
+        }
+    }
+);
+
+document.addEventListener(
+    "keyup",
+    e=>{
+        keys[e.key.toLowerCase()] = false;
+    }
+);
+
+let nearISS = false;
+
+const hint =
+document.getElementById("hint");
+
+
+
+function animate(){
+
+    requestAnimationFrame(
+        animate
+    );
+
+    const speed = 3;
+
+    if(keys["w"])
+        controls.moveForward(speed);
+
+    if(keys["s"])
+        controls.moveForward(-speed);
+
+    if(keys["a"])
+        controls.moveRight(-speed);
+
+if(keys["d"])
+    controls.moveRight(speed);
+
+// TV Remote Arrow Controls
+if(keys["arrowup"])
+    controls.moveForward(speed);
+
+if(keys["arrowdown"])
+    controls.moveForward(-speed);
+
+if(keys["arrowleft"])
+    camera.rotation.y += 0.03;
+
+if(keys["arrowright"])
+    camera.rotation.y -= 0.03;
+
+    if(keys["shift"])
+        camera.position.y -= speed;
+
+
+
+    earth.rotation.y += 0.0015;
+
+
+
+    const t =
+    performance.now()*0.00015;
+
+    moon.position.set(
+        Math.cos(t)*30000,
+        -5000,
+        Math.sin(t)*30000
+    );
+
+
+
+    if(iss){
+
+        const distance =
+        camera.position.distanceTo(
+            iss.position
+        );
+
+        if(distance < 120){
+
+            nearISS = true;
+            hint.style.display="block";
+
+        }else{
+
+            nearISS = false;
+            hint.style.display="none";
+        }
+    }
+
+    renderer.render(
+        scene,
+        camera
+    );
+}
+
+animate();
+
+
+
+window.addEventListener(
+    "resize",
+    ()=>{
+
+        camera.aspect =
+        window.innerWidth /
+        window.innerHeight;
+
+        camera.updateProjectionMatrix();
+
+        renderer.setSize(
+            window.innerWidth,
+            window.innerHeight
+        );
+    }
+);
+</script>
+
+</body>
+</html>
