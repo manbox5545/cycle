@@ -198,28 +198,52 @@ select{
     z-index:500;
 }
 
-/* =========================
-   DAMAGE OVERLAY
-========================= */
+#speedometer{
 
-#damageOverlay{
     position:fixed;
-    inset:0;
 
-    pointer-events:none;
+    bottom:20px;
+    right:20px;
 
-    opacity:0;
+    background:rgba(0,0,0,.75);
 
-    transition:.4s;
+    color:white;
 
-    background:
-    radial-gradient(
-        circle,
-        transparent 35%,
-        rgba(255,0,0,.75) 100%
-    );
+    font-size:32px;
 
-    z-index:9000;
+    font-weight:bold;
+
+    padding:15px 25px;
+
+    border-radius:12px;
+
+    z-index:1000;
+
+    min-width:180px;
+
+    text-align:center;
+
+}   
+
+#gearDisplay{
+
+    position:fixed;
+
+    bottom:90px;
+    right:20px;
+
+    background:rgba(0,0,0,.75);
+
+    color:#ffd700;
+
+    font-size:24px;
+
+    padding:10px 20px;
+
+    border-radius:12px;
+
+    z-index:1000;
+
 }
 
 </style>
@@ -232,7 +256,7 @@ select{
 ====================== -->
 
 <div id="loadingScreen">
-    <h1>Loading...</h1>
+    <h1>KILLING YOUR DEVICE</h1>
 </div>
 
 <!-- ======================
@@ -309,26 +333,6 @@ select{
 </div>
 
 <!-- ======================
-     GAME OVER MENU
-====================== -->
-
-<div id="gameOverMenu">
-
-    <div id="gameOverTitle">
-        GAME OVER
-    </div>
-
-    <div id="gameOverText">
-        Your cycle crashed
-    </div>
-
-    <button id="restartBtn">
-        RESTART
-    </button>
-
-</div>
-
-<!-- ======================
      FPS
 ====================== -->
 
@@ -336,11 +340,13 @@ select{
     FPS: 0
 </div>
 
-<!-- ======================
-     DAMAGE EFFECT
-====================== -->
+<div id="speedometer">
+    0 KM/H
+</div>
 
-<div id="damageOverlay"></div>
+<div id="gearDisplay">
+    GEAR 1
+</div>
 
 <!-- ======================
      IMPORT MAP
@@ -371,17 +377,24 @@ from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/RGBELoader
 
 let gameStarted = false;
 let paused = false;
-let crashed = false;
 
 let renderScale = 1;
 
 let speed = 0;
+
+let gear = 1;
+
+const gearLimits = [
+    350,
+    100,
+    150,
+    200,
+    250,
+    300,
+    350
+];
 let driftAmount = 0;
 let lean = 0;
-
-let isRaining = false;
-let rainTimer = 0;
-let nextRainTime = 60 + Math.random() * 60;
 
 let cycle = null;
 
@@ -389,9 +402,15 @@ const cycleSound = new Audio(
     "assets/cycle.mp3"
 );
 
+const coastSound = new Audio(
+    "assets/cycle2.mp3"
+);
+
 cycleSound.loop = true;
+coastSound.loop = true;
 
 cycleSound.volume = 0.6;
+coastSound.volume = 0.6;
 
 /* ===================================
    UI REFERENCES
@@ -406,14 +425,20 @@ document.getElementById("mainMenu");
 const pauseMenu =
 document.getElementById("pauseMenu");
 
-const gameOverMenu =
-document.getElementById("gameOverMenu");
-
-const damageOverlay =
-document.getElementById("damageOverlay");
+ 
 
 const fpsDiv =
 document.getElementById("fps");
+
+const speedometer =
+document.getElementById(
+    "speedometer"
+);
+
+const gearDisplay =
+document.getElementById(
+    "gearDisplay"
+);
 
 const playBtn =
 document.getElementById("playBtn");
@@ -424,8 +449,7 @@ document.getElementById("resumeBtn");
 const exitBtn =
 document.getElementById("exitBtn");
 
-const restartBtn =
-document.getElementById("restartBtn");
+ 
 
 const resolutionSelect =
 document.getElementById("resolutionSelect");
@@ -449,13 +473,7 @@ function applyQuality(){
     if(quality === "ultra"){
 
         renderer.shadowMap.enabled = true;
-
-        sun.castShadow = true;
-
-        sun.shadow.mapSize.set(
-            1024,
-            1024
-        );
+        sun.shadow.mapSize.set(1024,1024);
 
         scene.fog.far = 150;
 
@@ -463,16 +481,11 @@ function applyQuality(){
 
     else if(quality === "mid"){
 
-        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.enabled = false;
 
-        sun.castShadow = true;
+        sun.shadow.mapSize.set(256,256);
 
-        sun.shadow.mapSize.set(
-            512,
-            512
-        );
-
-        scene.fog.far = 120;
+        scene.fog.far = 80;
 
     }
 
@@ -480,14 +493,11 @@ function applyQuality(){
 
         renderer.shadowMap.enabled = false;
 
-        sun.castShadow = false;
-
-        scene.fog.far = 80;
+        scene.fog.far = 40;
 
     }
 
 }
-
 
 qualitySelect.onchange = (e)=>{
 
@@ -675,19 +685,17 @@ new THREE.Scene();
 scene.background =
 new THREE.Color(0x87ceeb);
 
-scene.fog =
-new THREE.Fog(
+scene.fog = new THREE.Fog(
     0x87ceeb,
-    20,
-    150
+    10,
+    60
 );
 
 /* ===================================
    CAMERA
 =================================== */
 
-const NORMAL_FOV = 60;
-const BOOST_FOV = 78;
+const NORMAL_FOV = 70;
 
 const camera =
 new THREE.PerspectiveCamera(
@@ -711,20 +719,13 @@ camera.position.set(
 const renderer =
 new THREE.WebGLRenderer({
 
-    antialias:true,
+    antialias:false,
     powerPreference:
     "high-performance"
 
 });
 
-renderer.setPixelRatio(
-
-    Math.min(
-        window.devicePixelRatio,
-        1.5
-    )
-
-);
+renderer.setPixelRatio(1);
 
 renderer.setSize(
     window.innerWidth,
@@ -734,7 +735,7 @@ renderer.setSize(
 renderer.shadowMap.enabled = true;
 
 renderer.shadowMap.type =
-THREE.PCFSoftShadowMap;
+THREE.BasicShadowMap;
 
 renderer.outputColorSpace =
 THREE.SRGBColorSpace;
@@ -753,31 +754,7 @@ document.body.appendChild(
    HDR ENVIRONMENT
 =================================== */
 
-const pmremGenerator =
-new THREE.PMREMGenerator(
-    renderer
-);
-
-new RGBELoader().load(
-
-"https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloofendal_48d_partly_cloudy_puresky_1k.hdr",
-
-(hdr)=>{
-
-    const envMap =
-
-    pmremGenerator
-    .fromEquirectangular(hdr)
-    .texture;
-
-    scene.environment =
-    envMap;
-
-    hdr.dispose();
-
-}
-
-);
+scene.environment = null;
 
 /* ===================================
    LIGHTING
@@ -842,15 +819,6 @@ scene.add(
 
 const roads = [];
 const grounds = [];
-const puddles = [];
-const buildingChunks = [];
-
-const rainGroup =
-new THREE.Group();
-
-scene.add(
-    rainGroup
-);
 
 /* ===================================
    INPUT
@@ -865,36 +833,41 @@ window.addEventListener(
     const k =
     e.key.toLowerCase();
 
-    if(
-        k === "w" ||
-        e.key === "ArrowUp"
-    ){
+    if(k === "w" || e.key === "ArrowUp"){
         keys["w"] = true;
     }
 
-    if(
-        k === "s" ||
-        e.key === "ArrowDown"
-    ){
+    if(k === "s" || e.key === "ArrowDown"){
         keys["s"] = true;
     }
 
-    if(
-        k === "a" ||
-        e.key === "ArrowLeft"
-    ){
+    if(k === "a" || e.key === "ArrowLeft"){
         keys["a"] = true;
     }
 
-    if(
-        k === "d" ||
-        e.key === "ArrowRight"
-    ){
+    if(k === "d" || e.key === "ArrowRight"){
         keys["d"] = true;
     }
 
-}
-);
+    if(k === "e"){
+
+        gear = Math.min(
+            gear + 1,
+            7
+        );
+
+    }
+
+    if(k === "q"){
+
+        gear = Math.max(
+            gear - 1,
+            1
+        );
+
+    }
+
+});
 
 window.addEventListener(
 "keyup",
@@ -974,8 +947,10 @@ window.addEventListener(
 =================================== */
 
 const ROAD_LIMIT = 18;
+
 let backBarrier = -20;
 
+let worldLoops = 0;
 /* ===================================
    ROAD CHUNKS
 =================================== */
@@ -1185,148 +1160,31 @@ for(let i=0;i<4;i++){
    GROUND
 =================================== */
 
-for(let i=0;i<4;i++){
+const ground =
+new THREE.Mesh(
 
-    const ground =
-    new THREE.Mesh(
+    new THREE.CircleGeometry(
+        2000,
+        64
+    ),
 
-        new THREE.PlaneGeometry(
-            1000,
-            250
-        ),
+    new THREE.MeshStandardMaterial({
 
-        new THREE.MeshStandardMaterial({
+        color:0x66aa44
 
-            color:0x4a7c3a
+    })
 
-        })
+);
 
-    );
+ground.rotation.x =
+-Math.PI / 2;
 
-    ground.rotation.x =
-    -Math.PI/2;
+ground.position.y = -0.05;
 
-    ground.position.z =
-    i * 250;
+ground.receiveShadow =
+true;
 
-    ground.receiveShadow =
-    true;
-
-    scene.add(
-        ground
-    );
-
-    grounds.push(
-        ground
-    );
-
-}
-
-/* ===================================
-   PUDDLES
-=================================== */
-
-for(let i=0;i<40;i++){
-
-    const puddle =
-    new THREE.Mesh(
-
-        new THREE.CircleGeometry(
-
-            1 +
-            Math.random()*2,
-
-            20
-
-        ),
-
-        new THREE.MeshStandardMaterial({
-
-            color:0x445566,
-
-            roughness:0.05,
-
-            metalness:0.8,
-
-            transparent:true,
-
-            opacity:0.85
-
-        })
-
-    );
-
-    puddle.rotation.x =
-    -Math.PI/2;
-
-    puddle.position.set(
-
-        (Math.random()-0.5)*20,
-
-        0.16,
-
-        Math.random()*1000
-
-    );
-
-    puddle.visible =
-    false;
-
-    scene.add(
-        puddle
-    );
-
-    puddles.push(
-        puddle
-    );
-
-}
-
-/* ===================================
-   RAIN SYSTEM
-=================================== */
-
-for(let i=0;i<200;i++){
-
-    const drop =
-    new THREE.Mesh(
-
-        new THREE.BoxGeometry(
-            0.03,
-            0.8,
-            0.03
-        ),
-
-        new THREE.MeshBasicMaterial({
-
-            color:0xaaddff,
-
-            transparent:true,
-
-            opacity:0.7
-
-        })
-
-    );
-
-    drop.position.set(
-
-        (Math.random()-0.5)*200,
-
-        Math.random()*80,
-
-        (Math.random()-0.5)*200
-
-    );
-
-    rainGroup.add(
-        drop
-    );
-
-}
-
-rainGroup.visible =
-false;
+scene.add(ground);
 
 /* ===================================
    MODEL LOADING
@@ -1346,8 +1204,8 @@ gltfLoader.load(
 
             if(child.isMesh){
 
-                child.castShadow = true;
-                child.receiveShadow = true;
+                child.castShadow = false;
+                child.receiveShadow = false;
 
             }
 
@@ -1372,6 +1230,12 @@ gltfLoader.load(
         scene.add(obj);
 
         cycle = obj;
+
+        trafficCars.forEach(car=>{
+        
+            respawnTraffic(car);
+        
+        });
 
         loadingScreen.style.display =
         "none";
@@ -1408,8 +1272,6 @@ gltfLoader.load(
 
 function resetGame(){
 
-    crashed = false;
-
     speed = 0;
 
     lean = 0;
@@ -1417,42 +1279,14 @@ function resetGame(){
     driftAmount = 0;
 
     backBarrier = -20;
-
-    rainTimer = 0;
-
-    isRaining = false;
-
-    nextRainTime =
-    60 + Math.random()*60;
-
-    damageOverlay.style.opacity =
-    "0";
-
-    gameOverMenu.style.display =
-    "none";
-
-    rainGroup.visible =
-    false;
-
-    puddles.forEach(p=>{
-
-        p.visible = false;
-
+    
     roads.forEach((road,index)=>{
-
+    
         road.position.z =
         index * 250;
     
     });
-    
-    grounds.forEach((ground,index)=>{
-    
-        ground.position.z =
-        index * 250;
-    
-    });
 
-    });
 
     if(cycle){
 
@@ -1500,30 +1334,13 @@ function resetGame(){
         road.material.metalness =
         0;
 
+
+
     });
 
-}
+    worldLoops = 0;
 
-/* ===================================
-   GAME OVER
-=================================== */
-
-function gameOver(){
-
-    if(crashed)
-    return;
-
-    crashed = true;
-
-    speed = 0;
-
-    damageOverlay.style.opacity =
-    "1";
-
-    gameOverMenu.style.display =
-    "flex";
-
-}
+};
 
 /* ===================================
    PLAY BUTTON
@@ -1572,20 +1389,6 @@ exitBtn.onclick = ()=>{
     "flex";
 
     resetGame();
-
-};
-
-/* ===================================
-   RESTART BUTTON
-=================================== */
-
-restartBtn.onclick = ()=>{
-
-    resetGame();
-
-    gameStarted = true;
-
-    paused = false;
 
 };
 
@@ -1651,8 +1454,7 @@ window.addEventListener(
         if(
             (e.key === "Escape" ||
              e.key === "Enter") &&
-            gameStarted &&
-            !crashed
+            gameStarted
         ){
 
             paused = !paused;
@@ -1717,500 +1519,441 @@ window.addEventListener(
 let lastFpsTime = performance.now();
 let frames = 0;
 
+const trafficCars = [];
+
+function respawnTraffic(car){
+
+    const lanes = [
+        -10,
+        -6,
+        -2,
+         2,
+         6,
+        10
+    ];
+
+    car.position.x =
+    lanes[
+        Math.floor(
+            Math.random() *
+            lanes.length
+        )
+    ];
+
+    car.position.y = 0.8;
+
+    car.position.z =
+    (cycle ? cycle.position.z : 0) +
+    300 +
+    Math.random() * 1000;
+
+    car.userData.speed =
+    1.5 +
+    Math.random() * 1.5;
+
+    car.rotation.y = 0;
+
+}
+
+const carFiles = [
+
+    "assets/CARS/car1.glb",
+    "assets/CARS/car2.glb",
+    "assets/CARS/car3.glb",
+    "assets/CARS/car4.glb"
+
+];
+
+for(let i=0;i<55;i++){
+
+    const file =
+
+    carFiles[
+        Math.floor(
+            Math.random() *
+            carFiles.length
+        )
+    ];
+
+    gltfLoader.load(
+
+        file,
+
+        (gltf)=>{
+
+            const car =
+            gltf.scene;
+
+            car.userData.lastHit = 0;
+            car.userData.vx = 0;
+            car.userData.vz = 0;
+            car.userData.vy = 0;
+
+            car.scale.set(
+                2,
+                2,
+                2
+            );
+
+            car.traverse((child)=>{
+
+                if(child.isMesh){
+
+                    child.castShadow =
+                    false;
+
+                    child.receiveShadow =
+                    false;
+
+                }
+
+            });
+
+            scene.add(car);
+
+            trafficCars.push(car);
+
+            if(cycle){
+
+                respawnTraffic(car);
+            }
+
+        }
+
+    );
+
+}
+
 /* ===================================
    ANIMATION LOOP
 =================================== */
 
 function animate(){
 
-    requestAnimationFrame(animate);
-
-    const now = performance.now();
-
-    frames++;
-
-    if(now - lastFpsTime >= 1000){
-
-        fpsDiv.textContent =
-        "FPS: " + frames;
-
-        frames = 0;
-        lastFpsTime = now;
-
-    }
-
-    if(
-        cycle &&
-        gameStarted &&
-        !paused
-    ){
-
-        /* ==========================
-           RECYCLE ROADS
-        ========================== */
-
-        roads.forEach(road=>{
-
-            if(
-                road.position.z <
-                cycle.position.z - 250
-            ){
-
-                road.position.z += 1000;
-
-                backBarrier += 250;
-
-            }
-
-        });
-
-        grounds.forEach(ground=>{
-
-            if(
-                ground.position.z <
-                cycle.position.z - 250
-            ){
-
-                ground.position.z += 1000;
-
-            }
-
-        });
-
-        /* ==========================
-           MOVEMENT
-        ========================== */
-
-        if(!crashed){
-
-            if(keys["w"])
-                speed += 0.03;
-
-            if(keys["s"])
-                speed -= 0.01;
-
-            speed *= 0.98;
-
-            speed = Math.max(
-                speed,
-                -0.5
-            );
-
-            if(keys["a"]){
-
-                cycle.rotation.y += 0.03;
-
-                driftAmount +=
-                Math.abs(speed);
-
-                lean = Math.min(
-                    lean + 0.03,
-                    0.4
-                );
-
-            }
-
-            if(keys["d"]){
-
-                cycle.rotation.y -= 0.03;
-
-                driftAmount +=
-                Math.abs(speed);
-
-                lean = Math.max(
-                    lean - 0.03,
-                    -0.4
-                );
-
-            }
-
-            if(
-                !keys["a"] &&
-                !keys["d"]
-            ){
-
-                lean *= 0.9;
-
-            }
-
+requestAnimationFrame(animate);
+const now = performance.now();
+frames++;
+if(now - lastFpsTime >= 1000){
+    fpsDiv.textContent =
+    "FPS: " + frames;
+    frames = 0;
+    lastFpsTime = now;
+}
+if(
+    cycle &&
+    gameStarted &&
+    !paused
+){
+    /* ==========================
+       RECYCLE ROADS
+    ========================== */
+    roads.forEach(road=>{
+        if(
+            road.position.z <
+            cycle.position.z - 250
+        ){
+            road.position.z += 1000;
+            worldLoops++;
+            backBarrier += 250;
         }
-
-        cycle.rotation.z =
-        -lean * 0.7;
-
-        cycle.position.x +=
-        Math.sin(
-            cycle.rotation.y
-        ) * speed;
-
-        cycle.position.z +=
-        Math.cos(
-            cycle.rotation.y
-        ) * speed;
-
-
-        if(keys["w"] && gameStarted){
-        
+    });
+    /* ==========================
+       MOVEMENT
+    ========================== */
+    const currentMaxSpeed =
+    gearLimits[gear - 1] / 150;
+    
+    if(keys["w"] && speed < currentMaxSpeed){
+        speed += 0.015;
+    }
+    
+    if(keys["s"]){
+        speed -= 0.05;
+    }
+    
+    if(!keys["w"]){
+        speed *= 0.997;
+    }
+    
+    speed = Math.max(speed,0);
+    
+    if(keys["a"]){
+        cycle.rotation.y += 0.03;
+        lean = Math.min(lean + 0.03,0.4);
+    }
+    
+    if(keys["d"]){
+        cycle.rotation.y -= 0.03;
+        lean = Math.max(lean - 0.03,-0.4);
+    }
+    
+    if(!keys["a"] && !keys["d"]){
+        lean *= 0.9;
+    }
+    cycle.rotation.z =
+    -lean * 0.7;
+    cycle.position.x +=
+    Math.sin(
+        cycle.rotation.y
+    ) * speed;
+    cycle.position.z +=
+    Math.cos(
+        cycle.rotation.y
+    ) * speed;
+    if(gameStarted){
+    
+        if(keys["w"]){
+    
+            if(coastSound && !coastSound.paused){
+    
+                coastSound.pause();
+                coastSound.currentTime = 0;
+    
+            }
+    
             if(cycleSound.paused){
-        
+    
                 cycleSound.play();
-        
+    
             }
-        
+    
         }
+    
+        else if(speed > 0.05){
+    
+            if(!cycleSound.paused){
+    
+                cycleSound.pause();
+                cycleSound.currentTime = 0;
+    
+            }
+    
+            if(coastSound.paused){
+    
+                coastSound.play();
+    
+            }
+    
+        }
+    
         else{
-        
+    
             cycleSound.pause();
-        
+            coastSound.pause();
+    
+            cycleSound.currentTime = 0;
+            coastSound.currentTime = 0;
+    
         }
-
-        /* ==========================
-           ROAD LIMITS
-        ========================== */
-
-        if(
-            cycle.position.x >
-            ROAD_LIMIT
-        ){
-
-            cycle.position.x =
-            ROAD_LIMIT;
-
-        }
-
-        if(
-            cycle.position.x <
-            -ROAD_LIMIT
-        ){
-
-            cycle.position.x =
-            -ROAD_LIMIT;
-
-        }
-
-        if(
-            cycle.position.z <
-            backBarrier
-        ){
-
-            cycle.position.z =
-            backBarrier;
-
-            if(speed < 0)
-                speed = 0;
-
-        }
-
-        /* ==========================
-           CRASH CHECK
-        ========================== */
-
-        if(
-            isRaining &&
-            !crashed
-        ){
-
-            puddles.forEach(p=>{
-
-                if(!p.visible)
-                return;
-
-                const dx =
-                cycle.position.x -
-                p.position.x;
-
-                const dz =
-                cycle.position.z -
-                p.position.z;
-
-                const dist =
-                Math.sqrt(
-                    dx*dx +
-                    dz*dz
-                );
-
-                if(
-
-                    dist < 2 &&
-                    driftAmount > 4 &&
-                    speed > 0.5
-
-                ){
-
-                    gameOver();
-
-                }
-
-            });
-
-        }
-
-        /* ==========================
-           CRASH ANIMATION
-        ========================== */
-
-        if(crashed){
-
-            cycle.rotation.z +=
-            0.08;
-
-            speed *= 0.92;
-
-            camera.rotation.z =
-            Math.sin(
-                performance.now()
-                * 0.02
-            ) * 0.12;
-
-        }
-
-        /* ==========================
-           CAMERA
-        ========================== */
-
-        camera.position.x =
-
-        cycle.position.x -
-
+    
+    }
+    /* ==========================
+       ROAD LIMITS
+    ========================== */
+    if(
+        cycle.position.x >
+        ROAD_LIMIT
+    ){
+        cycle.position.x =
+        ROAD_LIMIT;
+    }
+    if(
+        cycle.position.x <
+        -ROAD_LIMIT
+    ){
+        cycle.position.x =
+        -ROAD_LIMIT;
+    }
+    if(
+        cycle.position.z <
+        backBarrier
+    ){
+        cycle.position.z =
+        backBarrier;
+        if(speed < 0)
+            speed = 0;
+    }
+    /* ==========================
+       CAMERA
+    ========================== */
+    camera.position.x =
+    cycle.position.x -
+    Math.sin(
+        cycle.rotation.y
+    ) * 1.25;
+    camera.position.z =
+    cycle.position.z -
+    Math.cos(
+        cycle.rotation.y
+    ) * 1.25;
+    let bounce = 0;
+    if(
+        Math.abs(speed) > 0.1
+    ){
+        bounce =
         Math.sin(
-            cycle.rotation.y
-        ) * 1.25;
-
-        camera.position.z =
-
-        cycle.position.z -
-
-        Math.cos(
-            cycle.rotation.y
-        ) * 1.25;
-
-        let bounce = 0;
-
-        if(
-            Math.abs(speed) > 0.1
-        ){
-
-            bounce =
-
-            Math.sin(
-                performance.now()
-                * 0.01
-            )
-
-            *
-
-            Math.min(
-                Math.abs(speed)
-                * 0.04,
-                0.03
-            );
-
-        }
-
-        camera.position.y =
-
-        cycle.position.y +
-        2 +
-        bounce;
-
-        camera.lookAt(
-
-            cycle.position.x,
-
-            cycle.position.y + 1.5,
-
-            cycle.position.z
-
+            performance.now()
+            * 0.01
+        )
+        *
+        Math.min(
+            Math.abs(speed)
+            * 0.04,
+            0.03
         );
-
-        camera.up.set(
-
-            -lean * 0.5,
-
-            1,
-
-            0
-
-        );
-
     }
-
-    /* ==========================
-       FOV BOOST
-    ========================== */
-
-    const targetFov =
-
-    keys["w"]
-    ? BOOST_FOV
-    : NORMAL_FOV;
-
-    camera.fov +=
-
-    (targetFov - camera.fov)
-
-    * 0.08;
-
-    camera.updateProjectionMatrix();
-
-    /* ==========================
-       WEATHER TIMER
-    ========================== */
-
-    rainTimer += 1/60;
-
-    if(
-
-        !isRaining &&
-
-        rainTimer >
-        nextRainTime
-
-    ){
-
-        isRaining = true;
-
-        rainGroup.visible =
-        true;
-
-        puddles.forEach(p=>{
-
-            p.visible = true;
-
-        });
-
-        scene.background =
-        new THREE.Color(
-            0x4b5563
-        );
-
-        scene.fog.color.set(
-            0x5a6775
-        );
-
-        roads.forEach(r=>{
-
-            const road =
-            r.children[0];
-
-            road.material.color.set(
-                0x111111
-            );
-
-            road.material.roughness =
-            0.15;
-
-            road.material.metalness =
-            0.5;
-
-        });
-
-    }
-
-    if(
-
-        isRaining &&
-
-        rainTimer >
-        nextRainTime + 45
-
-    ){
-
-        isRaining = false;
-
-        rainGroup.visible =
-        false;
-
-        puddles.forEach(p=>{
-
-            p.visible = false;
-
-        });
-
-        scene.background =
-        new THREE.Color(
-            0x87ceeb
-        );
-
-        scene.fog.color.set(
-            0x87ceeb
-        );
-
-        roads.forEach(r=>{
-
-            const road =
-            r.children[0];
-
-            road.material.color.set(
-                0x222222
-            );
-
-            road.material.roughness =
-            1;
-
-            road.material.metalness =
-            0;
-
-        });
-
-        rainTimer = 0;
-
-        nextRainTime =
-
-        60 +
-
-        Math.random() * 60;
-
-    }
-
-    /* ==========================
-       RAIN UPDATE
-    ========================== */
-
-    if(rainGroup.visible){
-
-        if(cycle){
-
-            rainGroup.position.x =
-            cycle.position.x;
-
-            rainGroup.position.z =
-            cycle.position.z;
-
-        }
-
-        rainGroup.children.forEach(drop=>{
-
-            drop.position.y -= 1.8;
-
-            if(
-                drop.position.y < 0
-            ){
-
-                drop.position.y = 80;
-
-                drop.position.x =
-
-                (Math.random()-0.5)
-                * 200;
-
-                drop.position.z =
-
-                (Math.random()-0.5)
-                * 200;
-
-            }
-
-        });
-
-    }
-
-    renderer.render(
-        scene,
-        camera
+    camera.position.y =
+    cycle.position.y +
+    2 +
+    bounce;
+    camera.lookAt(
+        cycle.position.x,
+        cycle.position.y + 1.5,
+        cycle.position.z
     );
+    camera.up.set(
+        -lean * 0.5,
+        1,
+        0
+    );
+}
+/* ==========================
+   FOV BOOST
+========================== */
+camera.fov = NORMAL_FOV;
+if(cycle){
+
+const collisionCooldown = 300;
+
+trafficCars.forEach(car=>{
+
+const dx =
+car.position.x -
+cycle.position.x;
+const dz =
+car.position.z -
+cycle.position.z;
+const hitDistance =
+Math.sqrt(
+    dx * dx +
+    dz * dz
+);
+
+if(
+    hitDistance < 3 &&
+    now - car.userData.lastHit > collisionCooldown
+){
+
+    car.userData.lastHit = now;
+
+    const pushDirX = dx / hitDistance;
+    const pushDirZ = dz / hitDistance;
+
+    /* Huge launch */
+
+    car.userData.vx += pushDirX * 1.5;
+    car.userData.vz += pushDirZ * 4;
+
+    car.userData.vy += 2.5;
+
+    /* Start flipping */
+
+    car.userData.flipSpeed =
+    0.35 + Math.random() * 0.2;
+
+    /* Player knockback */
+
+    cycle.position.x -= pushDirX * 2;
+
+    cycle.position.z -= pushDirZ * 2;
+
+    speed *= 0.4;
 
 }
+
+car.position.z +=
+car.userData.speed;
+
+car.position.x +=
+car.userData.vx || 0;
+
+car.position.z +=
+car.userData.vz || 0;
+
+car.rotation.x +=
+car.userData.flipSpeed || 0;
+
+car.userData.vx *= 0.95;
+car.userData.vz *= 0.95;
+
+car.userData.vy -= 0.06;
+
+if(car.position.y < 0.8){
+
+    car.position.y = 0.8;
+
+    if(
+        Math.abs(car.userData.vy) > 0.3
+    ){
+
+        car.userData.vy *= -0.25;
+
+    }else{
+
+        car.userData.vy = 0;
+
+        car.rotation.x = Math.PI;
+
+        setTimeout(()=>{
+
+            respawnTraffic(car);
+
+            car.rotation.set(
+                0,
+                0,
+                0
+            );
+
+            car.userData.vx = 0;
+            car.userData.vy = 0;
+            car.userData.vz = 0;
+
+        },3000);
+
+    }
+
+}
+
+if(
+    car.position.z <
+    cycle.position.z - 100
+){
+    respawnTraffic(car);
+}
+const dist =
+Math.abs(
+    car.position.z -
+    cycle.position.z
+);
+car.visible = dist < 120;
+
+});
+
+}
+const kmh = Math.floor(
+    speed * 80
+);
+gearDisplay.textContent =
+"GEAR " + gear;
+
+speedometer.textContent =
+kmh + " KM/H";
+renderer.render(
+    scene,
+    camera
+);
+}
+
 
 animate();
 
