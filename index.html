@@ -2,1961 +2,803 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width,initial-scale=1.0">
-
-<title>Cycle Game</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Space Explorer</title>
 
 <style>
-
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
-
 body{
+    margin:0;
     overflow:hidden;
-    background:#000;
+    background:black;
     font-family:Arial,sans-serif;
 }
 
-canvas{
-    display:block;
-}
-
-/* =========================
-   LOADING SCREEN
-========================= */
-
-#loadingScreen{
-    position:fixed;
-    inset:0;
-    display:flex;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:#000;
+#planetName{
+    position:absolute;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
     color:white;
-    z-index:10000;
-}
-
-#loadingScreen h1{
-    font-size:40px;
-}
-
-/* =========================
-   MAIN MENU
-========================= */
-
-#mainMenu{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,.85);
-    z-index:9999;
-}
-
-#mainMenu h1{
-    color:white;
-    font-size:60px;
-    margin-bottom:30px;
-}
-
-/* =========================
-   PAUSE MENU
-========================= */
-
-#pauseMenu{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,.85);
-    z-index:9999;
-}
-
-#pauseMenu h2{
-    color:white;
-    margin-bottom:20px;
-}
-
-/* =========================
-   GAME OVER MENU
-========================= */
-
-#gameOverMenu{
-    position:fixed;
-    inset:0;
-    display:none;
-    flex-direction:column;
-    justify-content:center;
-    align-items:center;
-    background:rgba(0,0,0,.92);
-    z-index:10001;
-}
-
-#gameOverTitle{
-    color:#ff4444;
-    font-size:60px;
-    margin-bottom:20px;
-    text-shadow:0 0 20px red;
-}
-
-#gameOverText{
-    color:white;
-    font-size:22px;
-    margin-bottom:30px;
-}
-
-/* =========================
-   BUTTONS
-========================= */
-
-button{
-    border:none;
-    outline:none;
-    cursor:pointer;
-
-    padding:15px 35px;
-
-    margin:10px;
-
-    font-size:20px;
-
-    border-radius:12px;
-
-    transition:.2s;
-}
-
-button:hover{
-    transform:scale(1.05);
-}
-
-.tvFocus{
-
-    outline:4px solid yellow;
-
-    outline-offset:4px;
-
-    border-radius:10px;
-
-}
-
-#playBtn{
-    background:#27ae60;
-    color:white;
-}
-
-#resumeBtn{
-    background:#3498db;
-    color:white;
-}
-
-#exitBtn{
-    background:#e74c3c;
-    color:white;
-}
-
-#restartBtn{
-    background:#f39c12;
-    color:white;
-}
-
-/* =========================
-   SELECT
-========================= */
-
-select{
-    padding:12px;
-    margin:15px;
-    font-size:18px;
-}
-
-/* =========================
-   FPS COUNTER
-========================= */
-
-#fps{
-    position:fixed;
-    top:10px;
-    left:10px;
-
-    background:rgba(0,0,0,.75);
-
-    color:#00ff00;
-
-    padding:10px;
-
-    font-family:monospace;
-
-    z-index:500;
-}
-
-#speedometer{
-
-    position:fixed;
-
-    bottom:20px;
-    right:20px;
-
-    background:rgba(0,0,0,.75);
-
-    color:white;
-
     font-size:32px;
-
     font-weight:bold;
-
-    padding:15px 25px;
-
-    border-radius:12px;
-
-    z-index:1000;
-
-    min-width:180px;
-
-    text-align:center;
-
-}   
-
-#gearDisplay{
-
-    position:fixed;
-
-    bottom:90px;
-    right:20px;
-
-    background:rgba(0,0,0,.75);
-
-    color:#ffd700;
-
-    font-size:24px;
-
-    padding:10px 20px;
-
-    border-radius:12px;
-
-    z-index:1000;
-
+    text-shadow:0 0 15px cyan;
+    pointer-events:none;
 }
 
+#zoomText{
+    position:absolute;
+    bottom:20px;
+    left:20px;
+    color:white;
+    background:rgba(0,0,0,0.5);
+    padding:10px;
+    border-radius:10px;
+}
+
+#crosshair{
+    position:absolute;
+    top:50%;
+    left:50%;
+    width:30px;
+    height:30px;
+    transform:translate(-50%,-50%);
+    pointer-events:none;
+}
+
+#crosshair::before,
+#crosshair::after{
+    content:'';
+    position:absolute;
+    background:white;
+}
+
+#crosshair::before{
+    width:30px;
+    height:2px;
+    top:14px;
+    left:0;
+}
+
+#crosshair::after{
+    width:2px;
+    height:30px;
+    left:14px;
+    top:0;
+}
+#scope{
+position:fixed;
+left:50%;
+top:50%;
+transform:translate(-50%,-50%);
+width:80vmin;
+height:80vmin;
+border-radius:50%;
+border:4px solid rgba(255,255,255,.6);
+box-shadow:0 0 0 9999px rgba(0,0,0,.75);
+pointer-events:none;
+}
 </style>
 </head>
-
 <body>
 
-<!-- ======================
-     LOADING SCREEN
-====================== -->
-
-<div id="loadingScreen">
-    <h1>KILLING YOUR DEVICE</h1>
-</div>
-
-<!-- ======================
-     MAIN MENU
-====================== -->
-
-<div id="mainMenu">
-
-    <h1>CYCLE GAME</h1>
-
-    <button id="playBtn">
-        PLAY
-    </button>
-
-</div>
-
-<!-- ======================
-     PAUSE MENU
-====================== -->
-
-<div id="pauseMenu">
-
-    <h2>Paused</h2>
-
-    <label style="color:white;">
-        Resolution
-    </label>
-
-<select id="resolutionSelect">
-<option value="1">100%</option>
-<option value="0.75">75%</option>
-<option value="0.6">60%</option>
-<option value="0.5">50%</option>
-<option value="0.4">40%</option>
-<option value="0.3">30%</option>
-<option value="0.25">25%</option>
-<option value="0.2">20%</option>
-<option value="0.15">15%</option>
-<option value="0.1">10%</option>
-<option value="0.04">5%</option>
-<option value="0.01">POTATO</option>
-
-
-</select>
-
-<label style="color:white;">
-    Quality
-</label>
-
-<select id="qualitySelect">
-
-    <option value="ultra">
-        Ultra
-    </option>
-
-    <option value="mid">
-        Medium
-    </option>
-
-    <option value="low">
-        Low
-    </option>
-
-</select>
-
-    <button id="resumeBtn">
-        Resume
-    </button>
-
-    <button id="exitBtn">
-        Exit To Menu
-    </button>
-
-</div>
-
-<!-- ======================
-     FPS
-====================== -->
-
-<div id="fps">
-    FPS: 0
-</div>
-
-<div id="speedometer">
-    0 KM/H
-</div>
-
-<div id="gearDisplay">
-    GEAR 1
-</div>
-
-<!-- ======================
-     IMPORT MAP
-====================== -->
-
-<script type="importmap">
-{
-  "imports": {
-    "three":
-    "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js"
-  }
-}
-</script>
+<div id="planetName"></div>
+<div id="zoomText">Mouse Wheel = Telescope Zoom</div>
+<div id="crosshair"></div>
 
 <script type="module">
 
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js";
+import * as THREE from "https://unpkg.com/three@0.170.0/build/three.module.js";
 
-import { GLTFLoader }
-from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/GLTFLoader.js";
+const scene = new THREE.Scene();
 
-import { RGBELoader }
-from "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/loaders/RGBELoader.js";
-
-/* ===================================
-   GAME STATE
-=================================== */
-
-let gameStarted = false;
-let paused = false;
-
-let renderScale = 1;
-
-let speed = 0;
-
-let gear = 1;
-
-const gearLimits = [
-    350,
-    100,
-    150,
-    200,
-    250,
-    300,
-    350
-];
-let driftAmount = 0;
-let lean = 0;
-
-let cycle = null;
-
-const cycleSound = new Audio(
-    "assets/cycle.mp3"
+const camera = new THREE.PerspectiveCamera(
+60,
+window.innerWidth/window.innerHeight,
+0.1,
+5000
 );
 
-const coastSound = new Audio(
-    "assets/cycle2.mp3"
-);
+camera.position.set(0,25,180);
 
-cycleSound.loop = true;
-coastSound.loop = true;
+const renderer = new THREE.WebGLRenderer({
+antialias:true
+});
 
-cycleSound.volume = 0.6;
-coastSound.volume = 0.6;
+renderer.setSize(window.innerWidth,window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
 
-/* ===================================
-   UI REFERENCES
-=================================== */
+document.body.appendChild(renderer.domElement);
 
-const loadingScreen =
-document.getElementById("loadingScreen");
+const loader = new THREE.TextureLoader();
 
-const mainMenu =
-document.getElementById("mainMenu");
 
-const pauseMenu =
-document.getElementById("pauseMenu");
-
- 
-
-const fpsDiv =
-document.getElementById("fps");
-
-const speedometer =
-document.getElementById(
-    "speedometer"
-);
-
-const gearDisplay =
-document.getElementById(
-    "gearDisplay"
-);
-
-const playBtn =
-document.getElementById("playBtn");
-
-const resumeBtn =
-document.getElementById("resumeBtn");
-
-const exitBtn =
-document.getElementById("exitBtn");
-
- 
-
-const resolutionSelect =
-document.getElementById("resolutionSelect");
-
-const qualitySelect =
-document.getElementById("qualitySelect");
-
-let quality = "ultra";
-
-const menuItems = [
-    resolutionSelect,
-    qualitySelect,
-    resumeBtn,
-    exitBtn
-];
-
-let menuCursor = 0;
-
-function applyQuality(){
-
-    if(quality === "ultra"){
-
-        renderer.shadowMap.enabled = true;
-        sun.shadow.mapSize.set(1024,1024);
-
-        scene.fog.far = 150;
-
-    }
-
-    else if(quality === "mid"){
-
-        renderer.shadowMap.enabled = false;
-
-        sun.shadow.mapSize.set(256,256);
-
-        scene.fog.far = 80;
-
-    }
-
-    else{
-
-        renderer.shadowMap.enabled = false;
-
-        scene.fog.far = 40;
-
-    }
-
-}
-
-qualitySelect.onchange = (e)=>{
-
-    quality = e.target.value;
-
-    applyQuality();
-
+const textures = {
+sun:"https://threejs.org/examples/textures/planets/sun.jpg",
+mercury:"https://threejs.org/examples/textures/planets/mercury.jpg",
+venus:"https://threejs.org/examples/textures/planets/venus.jpg",
+earth:"https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg",
+mars:"https://threejs.org/examples/textures/planets/mars_1k_color.jpg",
+jupiter:"https://threejs.org/examples/textures/planets/jupiter.jpg",
+saturn:"https://threejs.org/examples/textures/planets/saturn.jpg",
+uranus:"https://threejs.org/examples/textures/planets/uranus.jpg",
+neptune:"https://threejs.org/examples/textures/planets/neptune.jpg"
 };
 
-function updateTVFocus(){
+let yaw = 0;
+let pitch = 0;
 
-    menuItems.forEach(item=>{
+document.body.addEventListener("click", () => {
+    document.body.requestPointerLock();
+});
 
-        item.classList.remove(
-            "tvFocus"
-        );
+document.addEventListener("mousemove", (e) => {
 
-    });
+    if(document.pointerLockElement !== document.body) return;
 
-    menuItems[
-        menuCursor
-    ].classList.add(
-        "tvFocus"
+    yaw -= e.movementX * 0.002;
+    pitch -= e.movementY * 0.002;
+
+    pitch = Math.max(
+        -Math.PI/2,
+        Math.min(Math.PI/2, pitch)
     );
 
-}
-
-window.addEventListener(
-"keydown",
-(e)=>{
-
-    if(!paused)
-    return;
-
-    if(e.key === "ArrowLeft"){
-
-        if(
-            document.activeElement ===
-            resolutionSelect
-        ){
-
-            resolutionSelect.selectedIndex =
-            Math.max(
-                0,
-                resolutionSelect.selectedIndex - 1
-            );
-
-            resolutionSelect.dispatchEvent(
-                new Event("change")
-            );
-
-        }
-
-        if(
-            document.activeElement ===
-            qualitySelect
-        ){
-
-            qualitySelect.selectedIndex =
-            Math.max(
-                0,
-                qualitySelect.selectedIndex - 1
-            );
-
-            qualitySelect.dispatchEvent(
-                new Event("change")
-            );
-
-        }
-
-    }
-
-    if(e.key === "ArrowRight"){
-
-        if(
-            document.activeElement ===
-            resolutionSelect
-        ){
-
-            resolutionSelect.selectedIndex =
-            Math.min(
-                resolutionSelect.options.length - 1,
-                resolutionSelect.selectedIndex + 1
-            );
-
-            resolutionSelect.dispatchEvent(
-                new Event("change")
-            );
-
-        }
-
-        if(
-            document.activeElement ===
-            qualitySelect
-        ){
-
-            qualitySelect.selectedIndex =
-            Math.min(
-                qualitySelect.options.length - 1,
-                qualitySelect.selectedIndex + 1
-            );
-
-            qualitySelect.dispatchEvent(
-                new Event("change")
-            );
-
-        }
-
-    }
-
-}
-);
-
-window.addEventListener(
-"keydown",
-(e)=>{
-
-    if(!paused)
-    return;
-
-    if(e.key === "ArrowUp"){
-
-        menuCursor--;
-
-        if(menuCursor < 0){
-
-            menuCursor =
-            menuItems.length - 1;
-
-        }
-
-        updateTVFocus();
-
-    }
-
-    if(e.key === "ArrowDown"){
-
-        menuCursor++;
-
-        if(
-            menuCursor >=
-            menuItems.length
-        ){
-
-            menuCursor = 0;
-
-        }
-
-        updateTVFocus();
-
-    }
-
-    if(
-        e.key === "Enter"
-    ){
-
-        const item =
-        menuItems[
-            menuCursor
-        ];
-
-        if(item === resumeBtn){
-
-            resumeBtn.click();
-
-        }
-
-        if(item === exitBtn){
-
-            exitBtn.click();
-
-        }
-
-    }
+    camera.rotation.order = "YXZ";
+    camera.rotation.y = yaw;
+    camera.rotation.x = pitch;
 
 });
 
-/* ===================================
-   THREE SCENE
-=================================== */
+const starsGeometry = new THREE.BufferGeometry();
+const starsCount = 12000;
 
-const scene =
-new THREE.Scene();
+const starsVertices = [];
 
-scene.background =
-new THREE.Color(0x87ceeb);
+for(let i=0;i<starsCount;i++){
 
-scene.fog = new THREE.Fog(
-    0x87ceeb,
-    10,
-    60
-);
-
-/* ===================================
-   CAMERA
-=================================== */
-
-const NORMAL_FOV = 70;
-
-const camera =
-new THREE.PerspectiveCamera(
-    NORMAL_FOV,
-    window.innerWidth /
-    window.innerHeight,
-    0.1,
-    2000
-);
-
-camera.position.set(
-    0,
-    3,
-    -5
-);
-
-/* ===================================
-   RENDERER
-=================================== */
-
-const renderer =
-new THREE.WebGLRenderer({
-
-    antialias:false,
-    powerPreference:
-    "high-performance"
-
-});
-
-renderer.setPixelRatio(1);
-
-renderer.setSize(
-    window.innerWidth,
-    window.innerHeight
-);
-
-renderer.shadowMap.enabled = true;
-
-renderer.shadowMap.type =
-THREE.BasicShadowMap;
-
-renderer.outputColorSpace =
-THREE.SRGBColorSpace;
-
-renderer.toneMapping =
-THREE.ACESFilmicToneMapping;
-
-renderer.toneMappingExposure =
-1.0;
-
-document.body.appendChild(
-    renderer.domElement
-);
-
-/* ===================================
-   HDR ENVIRONMENT
-=================================== */
-
-scene.environment = null;
-
-/* ===================================
-   LIGHTING
-=================================== */
-
-const ambientLight =
-new THREE.AmbientLight(
-    0xffffff,
-    2
-);
-
-scene.add(
-    ambientLight
-);
-
-const sun =
-new THREE.DirectionalLight(
-    0xffffff,
-    3
-);
-
-sun.position.set(
-    20,
-    30,
-    20
-);
-
-sun.castShadow = true;
-
-sun.shadow.mapSize.width =
-512;
-
-sun.shadow.mapSize.height =
-512;
-
-sun.shadow.camera.left =
--100;
-
-sun.shadow.camera.right =
-100;
-
-sun.shadow.camera.top =
-100;
-
-sun.shadow.camera.bottom =
--100;
-
-sun.shadow.camera.near =
-1;
-
-sun.shadow.camera.far =
-300;
-
-scene.add(
-    sun
-);
-
-
-/* ===================================
-   ARRAYS
-=================================== */
-
-const roads = [];
-const grounds = [];
-
-/* ===================================
-   INPUT
-=================================== */
-
-const keys = {};
-
-window.addEventListener(
-"keydown",
-(e)=>{
-
-    const k =
-    e.key.toLowerCase();
-
-    if(k === "w" || e.key === "ArrowUp"){
-        keys["w"] = true;
-    }
-
-    if(k === "s" || e.key === "ArrowDown"){
-        keys["s"] = true;
-    }
-
-    if(k === "a" || e.key === "ArrowLeft"){
-        keys["a"] = true;
-    }
-
-    if(k === "d" || e.key === "ArrowRight"){
-        keys["d"] = true;
-    }
-
-    if(k === "e"){
-
-        gear = Math.min(
-            gear + 1,
-            7
-        );
-
-    }
-
-    if(k === "q"){
-
-        gear = Math.max(
-            gear - 1,
-            1
-        );
-
-    }
-
-});
-
-window.addEventListener(
-"keyup",
-(e)=>{
-
-    const k =
-    e.key.toLowerCase();
-
-    if(
-        k === "w" ||
-        e.key === "ArrowUp"
-    ){
-        keys["w"] = false;
-    }
-
-    if(
-        k === "s" ||
-        e.key === "ArrowDown"
-    ){
-        keys["s"] = false;
-    }
-
-    if(
-        k === "a" ||
-        e.key === "ArrowLeft"
-    ){
-        keys["a"] = false;
-    }
-
-    if(
-        k === "d" ||
-        e.key === "ArrowRight"
-    ){
-        keys["d"] = false;
-    }
-
-}
-);
-/* ===================================
-   RESIZE
-=================================== */
-
-window.addEventListener(
-"resize",
-()=>{
-
-    camera.aspect =
-
-    window.innerWidth /
-    window.innerHeight;
-
-    camera.updateProjectionMatrix();
-
-    renderer.setSize(
-
-        window.innerWidth *
-        renderScale,
-
-        window.innerHeight *
-        renderScale,
-
-        false
-
+    starsVertices.push(
+        (Math.random()-0.5)*4000,
+        (Math.random()-0.5)*4000,
+        (Math.random()-0.5)*4000
     );
-
-    renderer.domElement.style.width =
-    "100vw";
-
-    renderer.domElement.style.height =
-    "100vh";
-
 }
+
+starsGeometry.setAttribute(
+'position',
+new THREE.Float32BufferAttribute(starsVertices,3)
 );
 
-/* ===================================
-   ROAD SETTINGS
-=================================== */
+const starsMaterial = new THREE.PointsMaterial({
+size:1.5
+});
 
-const ROAD_LIMIT = 18;
+const stars = new THREE.Points(
+starsGeometry,
+starsMaterial
+);
 
-let backBarrier = -20;
+scene.add(stars);
 
-let worldLoops = 0;
-/* ===================================
-   ROAD CHUNKS
-=================================== */
+for(let i=0;i<40;i++){
 
-for(let i=0;i<4;i++){
+    const cloud = new THREE.Mesh(
 
-    const roadGroup =
-    new THREE.Group();
+        new THREE.SphereGeometry(
 
-    /* Main Road */
+            80 +
 
-    const road = new THREE.Mesh(
+            Math.random()*120,
 
-        new THREE.PlaneGeometry(
-            50,
-            250
+            8,
+
+            8
+
         ),
 
-        new THREE.MeshStandardMaterial({
+        new THREE.MeshBasicMaterial({
 
-            color:0x222222,
-            roughness:1,
-            metalness:0
+            color:[
+
+                0xff44aa,
+                0x44aaff,
+                0xaa44ff,
+                0x44ffcc
+
+            ][
+
+                Math.floor(
+                    Math.random()*4
+                )
+
+            ],
+
+            transparent:true,
+
+            opacity:0.05
 
         })
 
     );
 
-    road.rotation.x =
-    -Math.PI/2;
+    cloud.position.set(
 
-    road.receiveShadow =
-    true;
+        (Math.random()-0.5)*3000,
 
-    roadGroup.add(
-        road
+        (Math.random()-0.5)*3000,
+
+        (Math.random()-0.5)*3000
+
     );
 
-    /* Left Shoulder */
+    scene.add(cloud);
 
-    const leftShoulder =
-    new THREE.Mesh(
+}
 
-        new THREE.PlaneGeometry(
-            3,
-            250
-        ),
+const ambient = new THREE.AmbientLight(
+0xffffff,
+2
+);
 
-        new THREE.MeshStandardMaterial({
-            color:0x666666
+scene.add(ambient);
+
+const sunLight = new THREE.PointLight(
+0xffffff,
+6,
+3000
+);
+const galaxies = [];
+
+const galaxyNames = [
+"Milky Way",
+"Andromeda",
+"Triangulum",
+"Whirlpool",
+"Sombrero",
+"Pinwheel",
+"Cartwheel",
+"Black Eye"
+];
+for(let i=0;i<8;i++){
+
+    const galaxy = new THREE.Mesh(
+        new THREE.SphereGeometry(5,8,8),
+        new THREE.MeshBasicMaterial({
+            color:0xffffcc
         })
-
     );
 
-    leftShoulder.rotation.x =
-    -Math.PI/2;
-
-    leftShoulder.position.set(
-        -23.5,
-        0.01,
-        0
+    galaxy.position.set(
+        (Math.random()-0.5)*3000,
+        (Math.random()-0.5)*3000,
+        (Math.random()-0.5)*3000
     );
 
-    roadGroup.add(
-        leftShoulder
+galaxy.userData = {
+    name: galaxyNames[i % galaxyNames.length],
+    isGalaxy:true,
+    loaded:false
+};
+
+    scene.add(galaxy);
+    galaxies.push(galaxy);
+}
+
+function createGalaxyView(galaxy){
+
+
+    if(galaxy.userData.loaded) return;
+
+    galaxy.userData.loaded = true;
+
+    const blackHole = new THREE.Mesh(
+        new THREE.SphereGeometry(3,32,32),
+        new THREE.MeshBasicMaterial({
+            color:0x000000
+        })
     );
 
-    /* Right Shoulder */
+    blackHole.position.copy(galaxy.position);
 
-    const rightShoulder =
-    leftShoulder.clone();
+    scene.add(blackHole);
 
-    rightShoulder.position.x =
-    23.5;
+    const galaxyObjects = [blackHole];
 
-    roadGroup.add(
-        rightShoulder
-    );
+    for(let i=0;i<500;i++){
 
-    /* Center Yellow Lines */
-
-    const yellowMat =
-    new THREE.MeshStandardMaterial({
-        color:0xffdd00
-    });
-
-    for(let x of [-0.6,0.6]){
-
-        const line =
-        new THREE.Mesh(
-
-            new THREE.PlaneGeometry(
-                0.3,
-                250
-            ),
-
-            yellowMat
-
-        );
-
-        line.rotation.x =
-        -Math.PI/2;
-
-        line.position.set(
-            x,
-            0.02,
-            0
-        );
-
-        roadGroup.add(
-            line
-        );
-
-    }
-
-    /* White Edge Lines */
-
-    const whiteMat =
-    new THREE.MeshStandardMaterial({
-        color:0xffffff
-    });
-
-    for(let x of [-18,18]){
-
-        const edge =
-        new THREE.Mesh(
-
-            new THREE.PlaneGeometry(
-                0.3,
-                250
-            ),
-
-            whiteMat
-
-        );
-
-        edge.rotation.x =
-        -Math.PI/2;
-
-        edge.position.set(
-            x,
-            0.02,
-            0
-        );
-
-        roadGroup.add(
-            edge
-        );
-
-    }
-
-    /* Cat Eyes */
-
-    for(
-        let z=-125;
-        z<125;
-        z+=30
-    ){
-
-        const catEye =
-        new THREE.Mesh(
-
-            new THREE.BoxGeometry(
-                0.4,
-                0.05,
-                0.4
-            ),
-
-            new THREE.MeshStandardMaterial({
-
-                color:0xffffaa,
-                emissive:0x444400
-
+        const star = new THREE.Mesh(
+            new THREE.SphereGeometry(0.15,4,4),
+            new THREE.MeshBasicMaterial({
+                color:0xffffff
             })
-
         );
 
-        catEye.position.set(
-            0,
-            0.05,
-            z
+        const angle = Math.random()*Math.PI*2;
+        const radius = Math.random()*40;
+
+        star.position.set(
+            galaxy.position.x + Math.cos(angle)*radius,
+            galaxy.position.y + (Math.random()-0.5)*2,
+            galaxy.position.z + Math.sin(angle)*radius
         );
 
-        roadGroup.add(
-            catEye
-        );
+        star.userData = {
+            orbitCenter: galaxy.position,
+            angle,
+            radius
+        };
 
+        scene.add(star);
+
+        galaxyObjects.push(star);
+
+        window.galaxyStars ??= [];
+        window.galaxyStars.push(star);
+        galaxies.push(star);
     }
 
-    roadGroup.position.z =
-    i * 250;
-
-    roadGroup.position.y =
-    0.15;
-
-    scene.add(
-        roadGroup
-    );
-
-    roads.push(
-        roadGroup
-    );
+    galaxy.userData.galaxyObjects = galaxyObjects;
 
 }
 
-/* ===================================
-   GROUND
-=================================== */
+function destroyGalaxyView(galaxy){
 
-const ground =
-new THREE.Mesh(
+    if(!galaxy.userData.loaded) return;
 
-    new THREE.CircleGeometry(
-        2000,
+    galaxy.userData.loaded = false;
+
+    if(!galaxy.userData.galaxyObjects) return;
+
+    galaxy.userData.galaxyObjects.forEach(obj=>{
+
+        scene.remove(obj);
+
+        const idx = window.galaxyStars?.indexOf(obj);
+
+        if(idx > -1){
+            window.galaxyStars.splice(idx,1);
+        }
+
+        if(obj.geometry) obj.geometry.dispose();
+
+        if(obj.material){
+            obj.material.dispose();
+        }
+
+    });
+
+    galaxy.userData.galaxyObjects = [];
+
+}
+
+
+scene.add(sunLight);
+
+const planets = [];
+function createPlanet(name,size,color){
+
+    const geometry =
+    new THREE.SphereGeometry(size,64,64);
+
+    const material =
+    new THREE.MeshStandardMaterial({
+        color: color,
+        roughness: 0.8,
+        metalness: 0.1
+    });
+
+    const planet =
+    new THREE.Mesh(
+        geometry,
+        material
+    );
+
+    planet.position.set(
+        (Math.random()-0.5)*800,
+        (Math.random()-0.5)*400,
+        (Math.random()-0.5)*800
+    );
+
+    planet.userData = { name };
+
+    scene.add(planet);
+    planets.push(planet);
+
+    return planet;
+}
+const sun = new THREE.Mesh(
+    new THREE.SphereGeometry(12,64,64),
+    new THREE.MeshBasicMaterial({
+        color:0xffcc33
+    })
+);
+
+scene.add(sun);
+createPlanet("Mercury",2,0x888888);
+createPlanet("Venus",3,0xd9b38c);
+createPlanet("Earth",3.2,0x3399ff);
+const mars = createPlanet(
+    "Mars",
+    2.5,
+    0xcc4422
+);
+const jupiter = createPlanet(
+    "Jupiter",
+    8,
+    0xd2b48c
+);
+const saturn = createPlanet(
+    "Saturn",
+    7,
+    0xe6d690
+);
+
+const saturnRing = new THREE.Mesh(
+
+    new THREE.RingGeometry(
+        10,
+        16,
         64
     ),
 
-    new THREE.MeshStandardMaterial({
+    new THREE.MeshBasicMaterial({
+        color:0xd6c28a,
+        side:THREE.DoubleSide,
+        transparent:true,
+        opacity:0.8
+    })
 
-        color:0x66aa44
+);
+
+saturnRing.rotation.x = Math.PI/2.4;
+
+saturn.add(saturnRing);
+createPlanet("Uranus",5,0x99ffff);
+createPlanet("Neptune",5,0x3366ff);
+
+const kuiperGeo =
+new THREE.BufferGeometry();
+
+const kuiperVertices = [];
+
+for(let i=0;i<5000;i++){
+
+    const angle =
+    Math.random()*Math.PI*2;
+
+    const radius =
+    1000 +
+    Math.random()*300;
+
+    kuiperVertices.push(
+
+        Math.cos(angle)
+        *
+        radius,
+
+        (Math.random()-0.5)*20,
+
+        Math.sin(angle)
+        *
+        radius
+
+    );
+
+}
+
+kuiperGeo.setAttribute(
+
+    "position",
+
+    new THREE.Float32BufferAttribute(
+        kuiperVertices,
+        3
+    )
+
+);
+
+const kuiper = new THREE.Points(
+
+    kuiperGeo,
+
+    new THREE.PointsMaterial({
+
+        color:0xcccccc,
+
+        size:1
 
     })
 
 );
 
-ground.rotation.x =
--Math.PI / 2;
+scene.add(kuiper);
 
-ground.position.y = -0.05;
+const jupiterMoons = [];
 
-ground.receiveShadow =
-true;
+for(let i=0;i<4;i++){
 
-scene.add(ground);
+    const moon = new THREE.Mesh(
 
-/* ===================================
-   MODEL LOADING
-=================================== */
+        new THREE.SphereGeometry(
+            0.7,
+            16,
+            16
+        ),
 
-const gltfLoader = new GLTFLoader();
-
-gltfLoader.load(
-
-    "assets/model.glb",
-
-    (gltf)=>{
-
-        const obj = gltf.scene;
-
-        obj.traverse((child)=>{
-
-            if(child.isMesh){
-
-                child.castShadow = false;
-                child.receiveShadow = false;
-
-            }
-
-        });
-
-        const box =
-        new THREE.Box3().setFromObject(obj);
-
-        const center =
-        box.getCenter(new THREE.Vector3());
-
-        obj.position.sub(center);
-
-        obj.position.y = 1;
-
-        obj.scale.set(
-            1,
-            1,
-            1
-        );
-
-        scene.add(obj);
-
-        cycle = obj;
-
-        trafficCars.forEach(car=>{
-        
-            respawnTraffic(car);
-        
-        });
-
-        loadingScreen.style.display =
-        "none";
-
-        mainMenu.style.display =
-        "flex";
-
-        console.log("GLB Loaded");
-
-    },
-
-    (xhr)=>{
-
-        console.log(
-            (xhr.loaded / xhr.total * 100).toFixed(0)
-            + "% loaded"
-        );
-
-    },
-
-    (error)=>{
-
-        console.error(error);
-
-        alert("GLB failed to load");
-
-    }
-
-);
-
-/* ===================================
-   RESET GAME
-=================================== */
-
-function resetGame(){
-
-    speed = 0;
-
-    lean = 0;
-
-    driftAmount = 0;
-
-    backBarrier = -20;
-    
-    roads.forEach((road,index)=>{
-    
-        road.position.z =
-        index * 250;
-    
-    });
-
-
-    if(cycle){
-
-        cycle.position.set(
-            0,
-            1,
-            0
-        );
-
-        cycle.rotation.set(
-            0,
-            0,
-            0
-        );
-
-    }
-
-    camera.rotation.set(
-        0,
-        0,
-        0
-    );
-
-    scene.background =
-    new THREE.Color(
-        0x87ceeb
-    );
-
-    scene.fog.color.set(
-        0x87ceeb
-    );
-
-    roads.forEach(r=>{
-
-        const road =
-        r.children[0];
-
-        road.material.color.set(
-            0x222222
-        );
-
-        road.material.roughness =
-        1;
-
-        road.material.metalness =
-        0;
-
-
-
-    });
-
-    worldLoops = 0;
-
-};
-
-/* ===================================
-   PLAY BUTTON
-=================================== */
-
-playBtn.onclick = ()=>{
-
-    resetGame();
-
-    gameStarted = true;
-
-    paused = false;
-
-    mainMenu.style.display =
-    "none";
-
-};
-
-/* ===================================
-   RESUME BUTTON
-=================================== */
-
-resumeBtn.onclick = ()=>{
-
-    paused = false;
-
-    pauseMenu.style.display =
-    "none";
-
-};
-
-/* ===================================
-   EXIT BUTTON
-=================================== */
-
-exitBtn.onclick = ()=>{
-
-    paused = false;
-
-    gameStarted = false;
-
-    pauseMenu.style.display =
-    "none";
-
-    mainMenu.style.display =
-    "flex";
-
-    resetGame();
-
-};
-
-/* ===================================
-   RESOLUTION MENU
-=================================== */
-
-resolutionSelect.onchange =
-(e)=>{
-
-    renderScale =
-    parseFloat(
-        e.target.value
-    );
-
-    renderer.setSize(
-
-        window.innerWidth *
-        renderScale,
-
-        window.innerHeight *
-        renderScale,
-
-        false
+        new THREE.MeshStandardMaterial({
+            color:0xffffff
+        })
 
     );
 
-    renderer.domElement.style.width =
-    "100vw";
+    moon.userData = {
 
-    renderer.domElement.style.height =
-    "100vh";
+        angle:
+        Math.random()*Math.PI*2,
 
-    if(renderScale <= 0.1){
+        distance:
+        12 + i*4
 
-        scene.fog.near = 5;
-        scene.fog.far = 40;
+    };
 
-    }
-    else if(renderScale <= 0.2){
+    scene.add(moon);
 
-        scene.fog.near = 10;
-        scene.fog.far = 60;
-
-    }
-    else{
-
-        scene.fog.near = 20;
-        scene.fog.far = 150;
-
-    }
-
-};
-
-/* ===================================
-   ESC PAUSE
-=================================== */
-
-window.addEventListener(
-    "keydown",
-    (e) => {
-
-        if(
-            (e.key === "Escape" ||
-             e.key === "Enter") &&
-            gameStarted
-        ){
-
-            paused = !paused;
-
-            pauseMenu.style.display =
-            paused
-            ? "flex"
-            : "none";
-            
-            if(paused){
-            
-                menuCursor = 0;
-            
-                updateTVFocus();
-            
-            }
-
-        }
-
-    }
-);
-
-/* ===================================
-   DEBUG KEYS
-=================================== */
-
-window.addEventListener(
-
-"keydown",
-
-(e)=>{
-
-    if(
-        e.key === "p"
-    ){
-
-        console.log(
-            camera.position
-        );
-
-    }
-
-    if(
-        e.key === "o" &&
-        cycle
-    ){
-
-        console.log(
-            cycle.position
-        );
-
-    }
+    jupiterMoons.push(moon);
 
 }
 
+const marsMoon = new THREE.Mesh(
+
+    new THREE.SphereGeometry(
+        0.5,
+        16,
+        16
+    ),
+
+    new THREE.MeshStandardMaterial({
+        color:0xaaaaaa
+    })
+
 );
 
-/* ===================================
-   FPS COUNTER
-=================================== */
+scene.add(marsMoon);
 
-let lastFpsTime = performance.now();
-let frames = 0;
+marsMoon.userData = {
 
-const trafficCars = [];
+    parent:mars,
 
-function respawnTraffic(car){
+    angle:0,
 
-    const lanes = [
-        -10,
-        -6,
-        -2,
-         2,
-         6,
-        10
-    ];
+    distance:6
 
-    car.position.x =
-    lanes[
-        Math.floor(
-            Math.random() *
-            lanes.length
-        )
-    ];
+};
 
-    car.position.y = 0.8;
+const raycaster = new THREE.Raycaster();
+const center = new THREE.Vector2(0,0);
 
-    car.position.z =
-    (cycle ? cycle.position.z : 0) +
-    300 +
-    Math.random() * 1000;
+const planetName =
+document.getElementById("planetName");
 
-    car.userData.speed =
-    1.5 +
-    Math.random() * 1.5;
+window.addEventListener("wheel",(e)=>{
 
-    car.rotation.y = 0;
+    camera.fov += e.deltaY * 0.02;
 
-}
-
-const carFiles = [
-
-    "assets/CARS/car1.glb",
-    "assets/CARS/car2.glb",
-    "assets/CARS/car3.glb",
-    "assets/CARS/car4.glb"
-
-];
-
-for(let i=0;i<55;i++){
-
-    const file =
-
-    carFiles[
-        Math.floor(
-            Math.random() *
-            carFiles.length
-        )
-    ];
-
-    gltfLoader.load(
-
-        file,
-
-        (gltf)=>{
-
-            const car =
-            gltf.scene;
-
-            car.userData.lastHit = 0;
-            car.userData.vx = 0;
-            car.userData.vz = 0;
-            car.userData.vy = 0;
-
-            car.scale.set(
-                2,
-                2,
-                2
-            );
-
-            car.traverse((child)=>{
-
-                if(child.isMesh){
-
-                    child.castShadow =
-                    false;
-
-                    child.receiveShadow =
-                    false;
-
-                }
-
-            });
-
-            scene.add(car);
-
-            trafficCars.push(car);
-
-            if(cycle){
-
-                respawnTraffic(car);
-            }
-
-        }
-
+    camera.fov = THREE.MathUtils.clamp(
+        camera.fov,
+        10,
+        80
     );
 
-}
+    camera.updateProjectionMatrix();
 
-/* ===================================
-   ANIMATION LOOP
-=================================== */
+});
+
+
+
+let mouseDown = false;
+
+window.addEventListener("mousedown",()=>{
+mouseDown = true;
+});
+
+window.addEventListener("mouseup",()=>{
+mouseDown = false;
+});
+
+window.addEventListener("mousemove",(e)=>{
+
+if(!mouseDown) return;
+
+camera.rotation.y -= e.movementX * 0.002;
+camera.rotation.x -= e.movementY * 0.002;
+
+});
+
+const keys = {};
+
+const moveSpeed = 0.02;
+
+window.addEventListener("keydown",(e)=>{
+    keys[e.key] = true;
+
+    if(e.key === "Enter"){
+        camera.fov -= 2;
+    }
+
+    if(e.key === "Escape" || e.key === "Backspace"){
+        camera.fov += 2;
+    }
+
+    camera.fov = THREE.MathUtils.clamp(camera.fov,0.3,80);
+    camera.updateProjectionMatrix();
+});
+
+window.addEventListener("keyup",(e)=>{
+    keys[e.key] = false;
+});
 
 function animate(){
 
 requestAnimationFrame(animate);
-const now = performance.now();
-frames++;
-if(now - lastFpsTime >= 1000){
-    fpsDiv.textContent =
-    "FPS: " + frames;
-    frames = 0;
-    lastFpsTime = now;
-}
-if(
-    cycle &&
-    gameStarted &&
-    !paused
-){
-    /* ==========================
-       RECYCLE ROADS
-    ========================== */
-    roads.forEach(road=>{
-        if(
-            road.position.z <
-            cycle.position.z - 250
-        ){
-            road.position.z += 1000;
-            worldLoops++;
-            backBarrier += 250;
-        }
-    });
-    /* ==========================
-       MOVEMENT
-    ========================== */
-    const currentMaxSpeed =
-    gearLimits[gear - 1] / 150;
-    
-    if(keys["w"] && speed < currentMaxSpeed){
-        speed += 0.015;
-    }
-    
-    if(keys["s"]){
-        speed -= 0.05;
-    }
-    
-    if(!keys["w"]){
-        speed *= 0.997;
-    }
-    
-    speed = Math.max(speed,0);
-    
-    if(keys["a"]){
-        cycle.rotation.y += 0.03;
-        lean = Math.min(lean + 0.03,0.4);
-    }
-    
-    if(keys["d"]){
-        cycle.rotation.y -= 0.03;
-        lean = Math.max(lean - 0.03,-0.4);
-    }
-    
-    if(!keys["a"] && !keys["d"]){
-        lean *= 0.9;
-    }
-    cycle.rotation.z =
-    -lean * 0.7;
-    cycle.position.x +=
-    Math.sin(
-        cycle.rotation.y
-    ) * speed;
-    cycle.position.z +=
-    Math.cos(
-        cycle.rotation.y
-    ) * speed;
-    if(gameStarted){
-    
-        if(keys["w"]){
-    
-            if(coastSound && !coastSound.paused){
-    
-                coastSound.pause();
-                coastSound.currentTime = 0;
-    
-            }
-    
-            if(cycleSound.paused){
-    
-                cycleSound.play();
-    
-            }
-    
-        }
-    
-        else if(speed > 0.05){
-    
-            if(!cycleSound.paused){
-    
-                cycleSound.pause();
-                cycleSound.currentTime = 0;
-    
-            }
-    
-            if(coastSound.paused){
-    
-                coastSound.play();
-    
-            }
-    
-        }
-    
-        else{
-    
-            cycleSound.pause();
-            coastSound.pause();
-    
-            cycleSound.currentTime = 0;
-            coastSound.currentTime = 0;
-    
-        }
-    
-    }
-    /* ==========================
-       ROAD LIMITS
-    ========================== */
-    if(
-        cycle.position.x >
-        ROAD_LIMIT
-    ){
-        cycle.position.x =
-        ROAD_LIMIT;
-    }
-    if(
-        cycle.position.x <
-        -ROAD_LIMIT
-    ){
-        cycle.position.x =
-        -ROAD_LIMIT;
-    }
-    if(
-        cycle.position.z <
-        backBarrier
-    ){
-        cycle.position.z =
-        backBarrier;
-        if(speed < 0)
-            speed = 0;
-    }
-    /* ==========================
-       CAMERA
-    ========================== */
-    camera.position.x =
-    cycle.position.x -
-    Math.sin(
-        cycle.rotation.y
-    ) * 1.25;
-    camera.position.z =
-    cycle.position.z -
-    Math.cos(
-        cycle.rotation.y
-    ) * 1.25;
-    let bounce = 0;
-    if(
-        Math.abs(speed) > 0.1
-    ){
-        bounce =
-        Math.sin(
-            performance.now()
-            * 0.01
-        )
-        *
-        Math.min(
-            Math.abs(speed)
-            * 0.04,
-            0.03
-        );
-    }
-    camera.position.y =
-    cycle.position.y +
-    2 +
-    bounce;
-    camera.lookAt(
-        cycle.position.x,
-        cycle.position.y + 1.5,
-        cycle.position.z
-    );
-    camera.up.set(
-        -lean * 0.5,
-        1,
-        0
-    );
-}
-/* ==========================
-   FOV BOOST
-========================== */
-camera.fov = NORMAL_FOV;
-if(cycle){
 
-const collisionCooldown = 300;
+if(keys["q"]) camera.fov -= 0.3;
+if(keys["e"]) camera.fov += 0.3;
 
-trafficCars.forEach(car=>{
-
-const dx =
-car.position.x -
-cycle.position.x;
-const dz =
-car.position.z -
-cycle.position.z;
-const hitDistance =
-Math.sqrt(
-    dx * dx +
-    dz * dz
+camera.fov = THREE.MathUtils.clamp(
+    camera.fov,
+    0.3,
+    80
 );
 
-if(
-    hitDistance < 3 &&
-    now - car.userData.lastHit > collisionCooldown
-){
+camera.updateProjectionMatrix();
 
-    car.userData.lastHit = now;
+planets.forEach(planet=>{
+    planet.rotation.y += 0.01;
+});
 
-    const pushDirX = dx / hitDistance;
-    const pushDirZ = dz / hitDistance;
+marsMoon.userData.angle += 0.02;
 
-    /* Huge launch */
-
-    car.userData.vx += pushDirX * 1.5;
-    car.userData.vz += pushDirZ * 4;
-
-    car.userData.vy += 2.5;
-
-    /* Start flipping */
-
-    car.userData.flipSpeed =
-    0.35 + Math.random() * 0.2;
-
-    /* Player knockback */
-
-    cycle.position.x -= pushDirX * 2;
-
-    cycle.position.z -= pushDirZ * 2;
-
-    speed *= 0.4;
-
-}
-
-car.position.z +=
-car.userData.speed;
-
-car.position.x +=
-car.userData.vx || 0;
-
-car.position.z +=
-car.userData.vz || 0;
-
-car.rotation.x +=
-car.userData.flipSpeed || 0;
-
-car.userData.vx *= 0.95;
-car.userData.vz *= 0.95;
-
-car.userData.vy -= 0.06;
-
-if(car.position.y < 0.8){
-
-    car.position.y = 0.8;
-
-    if(
-        Math.abs(car.userData.vy) > 0.3
-    ){
-
-        car.userData.vy *= -0.25;
-
-    }else{
-
-        car.userData.vy = 0;
-
-        car.rotation.x = Math.PI;
-
-        setTimeout(()=>{
-
-            respawnTraffic(car);
-
-            car.rotation.set(
-                0,
-                0,
-                0
-            );
-
-            car.userData.vx = 0;
-            car.userData.vy = 0;
-            car.userData.vz = 0;
-
-        },3000);
-
-    }
-
-}
-
-if(
-    car.position.z <
-    cycle.position.z - 100
-){
-    respawnTraffic(car);
-}
-const dist =
-Math.abs(
-    car.position.z -
-    cycle.position.z
+marsMoon.position.copy(
+    mars.position
 );
-car.visible = dist < 120;
+
+marsMoon.position.x +=
+Math.cos(
+    marsMoon.userData.angle
+)
+*
+marsMoon.userData.distance;
+
+marsMoon.position.z +=
+Math.sin(
+    marsMoon.userData.angle
+)
+*
+marsMoon.userData.distance;
+raycaster.setFromCamera(
+center,
+camera
+);
+
+const intersects =
+raycaster.intersectObjects([
+...planets,
+...galaxies
+]);
+
+if(intersects.length){
+
+const obj = intersects[0].object;
+
+planetName.textContent =
+obj.userData.name || "Unknown Star";
+
+if(
+obj.userData.isGalaxy &&
+camera.fov < 3
+){
+    createGalaxyView(obj);
+}
+
+}else{
+
+planetName.textContent = "";
+
+}
+
+if(window.galaxyStars){
+
+window.galaxyStars.forEach(star=>{
+
+    star.userData.angle += 0.01;
+
+    star.position.x =
+        star.userData.orbitCenter.x +
+        Math.cos(star.userData.angle) *
+        star.userData.radius;
+
+    star.position.z =
+        star.userData.orbitCenter.z +
+        Math.sin(star.userData.angle) *
+        star.userData.radius;
 
 });
 
 }
-const kmh = Math.floor(
-    speed * 80
-);
-gearDisplay.textContent =
-"GEAR " + gear;
 
-speedometer.textContent =
-kmh + " KM/H";
-renderer.render(
-    scene,
-    camera
+galaxies.forEach(galaxy=>{
+
+    if(
+        galaxy.userData &&
+        galaxy.userData.isGalaxy &&
+        galaxy.userData.loaded &&
+        camera.fov > 6
+    ){
+        destroyGalaxyView(galaxy);
+    }
+
+});
+
+jupiterMoons.forEach(moon=>{
+
+    moon.userData.angle += 0.01;
+
+    moon.position.copy(
+        jupiter.position
+    );
+
+    moon.position.x +=
+    Math.cos(
+        moon.userData.angle
+    )
+    *
+    moon.userData.distance;
+
+    moon.position.z +=
+    Math.sin(
+        moon.userData.angle
+    )
+    *
+    moon.userData.distance;
+
+});
+
+if(keys["ArrowLeft"])  yaw += moveSpeed;
+if(keys["ArrowRight"]) yaw -= moveSpeed;
+if(keys["ArrowUp"])    pitch += moveSpeed;
+if(keys["ArrowDown"])  pitch -= moveSpeed;
+
+pitch = THREE.MathUtils.clamp(
+    pitch,
+    -Math.PI/2,
+    Math.PI/2
 );
+
+camera.rotation.order = "YXZ";
+camera.rotation.y = yaw;
+camera.rotation.x = pitch;
+
+renderer.render(scene,camera);
 }
-
 
 animate();
 
+window.addEventListener("resize",()=>{
+
+camera.aspect =
+window.innerWidth /
+window.innerHeight;
+
+camera.updateProjectionMatrix();
+
+renderer.setSize(
+window.innerWidth,
+window.innerHeight
+);
+
+});
+
 </script>
+
+<div id="scope"></div>
 </body>
-</html>
+</html>v
