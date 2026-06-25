@@ -619,11 +619,11 @@ let targetFov = 60;
 let lastOkTime = 0;
 
 let zoomLevel = 1;
-const maxZoomLevel = 20;
+const maxZoomLevel = 50;
 
 function applyZoom(){
 
-    targetFov = 60 / zoomLevel;
+    targetFov = 60 / Math.pow(1.25, zoomLevel - 1);
 
     targetFov = THREE.MathUtils.clamp(
         targetFov,
@@ -717,7 +717,7 @@ requestAnimationFrame(animate);
 
 camera.fov = THREE.MathUtils.clamp(
     camera.fov,
-    5,
+    0.3,
     80
 );
 
